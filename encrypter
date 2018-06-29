@@ -22,4 +22,4 @@ for i in range(39999, -1, -1):
     px[i % 200, int(i / 200)] = pr
     px[xr, yr] = p
 
-im.save('encrypted.png', optimize=False, progressive=False, quality=100)
+im.save('encrypted.png')
