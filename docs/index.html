@@ -1,1 +1,35 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        <link rel="manifest" href="site.webmanifest">
+        <link rel="apple-touch-icon" href="icon.png">
+        <!-- Place favicon.ico in the root directory -->
+
+        <link rel="stylesheet" href="css/normalize.css">
+        <link rel="stylesheet" href="css/main.css">
+    </head>
+    <body>
+
+        <div id="cont_clr">
+            <input id="in_file" type="file">
+        </div>
+        <div id="cnt_btns">
+            <button disabled id="btn_dec" onclick="loadImage()">DECRYPT</button>
+            <button id="btn_enc">ENCRYPT</button>
+            <button id="btn_clr">CLEAR</button>
+        </div>
+        <div id="cnt_im">
+            <div id="cnt_im_pre"><canvas id="in_img"></canvas></div>
+            <div id="cnt_btn_tra"></div>
+            <div id="cnt_im_post"><canvas id="out_img"></canvas></div>
+        </div>
+        <script src="js/plugins.js"></script>
+        <script src="js/main.js"></script>
+    </body>
+</html>
