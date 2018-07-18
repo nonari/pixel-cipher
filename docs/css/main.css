@@ -135,17 +135,13 @@ html,body {
     box-shadow: 0 3px #999;
 }
 
-#cnt_btns button:active {
+#cnt_btns button:enabled:active {
     box-shadow: 0 0 #999;
     transform: translateY(3px);
 }
 
 #cnt_btns button:enabled:hover {
     background-color: crimson;
-}
-
-#cnt_btns button:disabled {
-
 }
 
 #cnt_im {
@@ -182,13 +178,6 @@ html,body {
     height: 100%;
     width: 20%;
 }
-
-
-
-
-
-
-
 
 
 /* ==========================================================================
