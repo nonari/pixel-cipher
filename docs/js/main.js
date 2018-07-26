@@ -71,6 +71,56 @@ function processImg() {
     ctx_out.putImageData(data, 0, 0);
 }
 
+let angle = 0;
+
+function getCanvasEdges(slope) {
+    slope = Math.tan(angle);
+
+    const canvas = new Canvas();
+    if (slope > 0) {
+        canvas.min_x_edge = 0;
+        canvas.min_y_edge = 0;
+        canvas.max_x_edge = 200;
+        canvas.max_y_edge = 200;
+    } else {
+        canvas.min_x_edge = 0;
+        canvas.min_y_edge = 200;
+        canvas.max_x_edge = 200;
+        canvas.max_y_edge = 0;
+    }
+
+    return canvas;
+}
+
+function length(x, y, slope) {
+    const canvas = getCanvasEdges(slope);
+
+    testEdges = getEdges();
+
+    const point = intersection(x, y, slope,);
+
+}
+
+function getEdges() {
+    return 'UD';
+}
+
+function intersection(x, y, slope, distance, XorY) {
+
+}
+
+class Point {
+    x;
+    y;
+}
+
+class Canvas {
+    min_x_edge;
+    min_y_edge;
+    max_x_edge;
+    max_y_edge;
+}
+
 function shuffle(data) {
     let y0 = 1;
     let x0 = 1.0000001;
