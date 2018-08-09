@@ -71,55 +71,111 @@ function processImg() {
     ctx_out.putImageData(data, 0, 0);
 }
 
-let angle = 0;
+let slope = 0;
+const canvas = new Canvas(slope, 200, 200);
 
-function getCanvasEdges(slope) {
-    slope = Math.tan(angle);
+function length(point, slope) {
 
-    const canvas = new Canvas();
-    if (slope > 0) {
-        canvas.min_x_edge = 0;
-        canvas.min_y_edge = 0;
-        canvas.max_x_edge = 200;
-        canvas.max_y_edge = 200;
-    } else {
-        canvas.min_x_edge = 0;
-        canvas.min_y_edge = 200;
-        canvas.max_x_edge = 200;
-        canvas.max_y_edge = 0;
+    const testEdges = getEdges(canvas, point, slope);
+
+    if (testEdges === 'BU') {
+
     }
 
-    return canvas;
-}
-
-function length(x, y, slope) {
-    const canvas = getCanvasEdges(slope);
-
-    testEdges = getEdges();
-
-    const point = intersection(x, y, slope,);
+    const intersectionPoint = intersection(point, slope, 1, true);
 
 }
 
-function getEdges() {
-    return 'UD';
+function calculatePoint(point, slope, distance) {
+    const newPoint = Point();
+    if (slope === Number.POSITIVE_INFINITY) {
+        newPoint.x = point.x;
+        newPoint.y = point.y + distance;
+    } else {
+        newPoint.x = distance;
+        newPoint.y = (point.x * slope) - (distance * slope) + point.y;
+    }
+    return newPoint;
 }
 
-function intersection(x, y, slope, distance, XorY) {
+function getEdges(canvas, point, slope) {
+    const fstDiagonalPoints = canvas.fstDiagonal;
+    const sndDiagonalPoints = canvas.sndDiagonal;
+    if (isLeft(fstDiagonalPoints[0], fstDiagonalPoints[1], point)) {
+        if (slope > 1) {
+            return 'LU'
+        } else {
+            return 'LB'
+        }
+    } else if (isLeft(sndDiagonalPoints[0], sndDiagonalPoints[1], point)) {
+        return 'BU'
+    } else {
+        if (slope > 1) {
+            return 'RB'
+        } else {
+            return 'RU'
+        }
+    }
+}
 
+function isLeft(linePoint1, linePoint2, point) {
+    return ((linePoint2.x - linePoint1.x) * (point.y - linePoint1.y) - (linePoint2.y - linePoint1.y) * (point.x - linePoint1.x)) > 0;
+}
+
+function intersection(line, edgeLine) {
+    return new Point();
 }
 
 class Point {
-    x;
-    y;
+    constructor(x,y) {
+        this.x = x;
+        this.y = y;
+    }
 }
 
-class Canvas {
-    min_x_edge;
-    min_y_edge;
-    max_x_edge;
-    max_y_edge;
+function Line(point, slope) {
+    this.point = point;
+    this.slope = slope;
+
+    this.otherPoint = calculatePoint(point, slope, 1);
+
+    this.contains = (testPoint) => {
+        return (point.y - testPoint.y) === ((point.x - testPoint.x) * slope);
+    };
 }
+
+function Segment(line, edges) {
+    this.line = line;
+    this.edges = edges;
+}
+
+function Canvas(slope, width, height) {
+    if (slope > 0) {
+        this.min_x_edge = 0;
+        this.min_y_edge = 0;
+        this.max_x_edge = width;
+        this.max_y_edge = height;
+    } else {
+        this.min_x_edge = 0;
+        this.min_y_edge = height;
+        this.max_x_edge = width;
+        this.max_y_edge = 0;
+    }
+
+    let maxEdge = new Point();
+    maxEdge.x = this.max_x_edge;
+    maxEdge.y = this.max_y_edge;
+
+    let minEdge = new Point();
+    minEdge.x = this.min_x_edge;
+    minEdge.y = this.min_y_edge;
+
+    this.fstDiagonal = [maxEdge, calculatePoint(maxEdge, slope, 1)];
+
+    this.sndDiagonal = [minEdge, calculatePoint(minEdge, slope, 1)];
+
+}
+
 
 function shuffle(data) {
     let y0 = 1;
