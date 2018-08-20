@@ -110,9 +110,7 @@ function calculateSlope(point1, point2) {
 }
 
 class Point {
-    constructor(x,y) {
-
-    }
+    constructor(x, y);
 }
 
 class Line {
@@ -214,22 +212,30 @@ function Segment(line, canvas) {
 
 
     this.next = (point) => {
+        let nextP;
         if (line.slope === Number.POSITIVE_INFINITY) {
-            return new Point(point.x, point.y + 1);
+            nextP = new Point(point.x, point.y + 1);
         } else if (line.slope === 0) {
-            return new Point(point.x + 1, point.y);
+            nextP = new Point(point.x + 1, point.y);
         } else {
             const xNext = point.x + spread;
             const yNext = line.evaluate(point.x + spread);
-            return new Point(xNext, yNext);
+            nextP = new Point(xNext, yNext);
+        }
+
+        if (nextP.x > canvas.height) {
+            return null
+        } else {
+            return nextP;
         }
     };
 
     this.forEach = (cb) => {
-        let currentPoint = ();
+        let currentPoint = new Point(xDelta, line.evaluate(xDelta));
+        cb(currentPoint);
         for (let x = 0; x < xLength; x+=spread) {
-            next
-            cb(1);
+            currentPoint = this.next();
+            cb(currentPoint);
         }
     };
 }
