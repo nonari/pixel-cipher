@@ -73,7 +73,7 @@ function processImg() {
 }
 
 function length() {
-    const slope = 0;
+    const slope = slopeFromDegrees(90);
     const point = new Point(1,1);
 
     const line = new Line(point, slope);
@@ -82,7 +82,19 @@ function length() {
 
     const segment = new Segment(line, canvas);
 
-    segment.getHypotenuse();
+    return segment.getHypotenuse();
+}
+
+function slopeFromDegrees(degrees) {
+    const radians = degrees * (Math.PI / 180);
+
+    const slope = Math.tan(radians);
+
+    if (slope === 16331239353195370 || slope === -16331239353195370) {
+        return Number.POSITIVE_INFINITY;
+    } else {
+        return round(slope);
+    }
 }
 
 function calculatePoint(point, slope, distance) {
@@ -233,7 +245,7 @@ function Segment(line, canvas) {
     this.forEach = (cb) => {
         let currentPoint = new Point(xDelta, line.evaluate(xDelta));
         cb(currentPoint);
-        for (let x = 0; x < xLength; x+=spread) {
+        for (let x = spread * 0.99999; x < xLength; x+=spread) {
             currentPoint = this.next();
             cb(currentPoint);
         }
@@ -295,6 +307,10 @@ function Canvas(slope, width, height) {
     }
 }
 
+function round(number, length) {
+    return parseFloat(Number(number).toFixed(length));
+}
+
 function shuffle(data) {
     let y0 = 1;
     let x0 = 1.0000001;
@@ -303,8 +319,8 @@ function shuffle(data) {
         const x = 1 - 1.4 * Math.pow(x0, 2) + y0;
         const y = 0.3 * x0;
 
-        x0 = parseFloat(Number(x).toFixed(14));
-        y0 = parseFloat(Number(y).toFixed(14));
+        x0 = round(x, 14);
+        y0 = round(y, 14);
 
         const xr = Number.parseInt(x.toString().slice(4,9)) % image.width;
         const yr = Number.parseInt(y.toString().slice(4,9)) % image.height;
