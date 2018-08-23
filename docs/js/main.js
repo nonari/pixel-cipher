@@ -76,7 +76,7 @@ function length() {
     const slope = slopeFromDegrees(90);
     const point = new Point(1,1);
 
-    const line = new Line(point, slope);
+    const line = Line.ofPointSlope(point, slope);
 
     const canvas = new Canvas(slope, 200, 200);
 
@@ -98,13 +98,13 @@ function slopeFromDegrees(degrees) {
 }
 
 function calculatePoint(point, slope, distance) {
-    const newPoint = Point();
+    const newPoint = new Point();
     if (slope === Number.POSITIVE_INFINITY) {
         newPoint.x = point.x;
         newPoint.y = point.y + distance;
     } else {
-        newPoint.x = distance;
-        newPoint.y = (point.x * slope) - (distance * slope) + point.y;
+        newPoint.x = point.x + distance;
+        newPoint.y = slope * (newPoint.x - point.x) + point.y;
     }
 
     return newPoint;
@@ -122,7 +122,10 @@ function calculateSlope(point1, point2) {
 }
 
 class Point {
-    constructor(x, y);
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    };
 }
 
 class Line {
@@ -147,7 +150,7 @@ class Line {
     }
 
     contains(testPoint)  {
-        return (this.point1.y - testPoint.y) === ((this.point1.x - testPoint.x) * this.slope);
+        return round((this.point1.y - testPoint.y), 14) === round(((this.point1.x - testPoint.x) * this.slope), 14);
     };
 
     evaluate(x) {
@@ -155,7 +158,17 @@ class Line {
     }
 
     revEvaluate(y) {
-        return ((-this.point1.x * this.slope) + y - this.point1.y) / this.slope;
+        if (this.slope === 0) {
+            if (this.point1.y === y) {
+                return y;
+            } else {
+                throw new Error('Can\'t calculate x for y = ' + y + ' because slope is zero');
+            }
+        } else if (this.slope === Number.POSITIVE_INFINITY) {
+            return line.point1.x;
+        } else {
+            return ((this.point1.x * this.slope) + y - this.point1.y) / this.slope;
+        }
     }
 
     linearDistanceFrom(point) {
@@ -170,8 +183,12 @@ function Segment(line, canvas) {
     let hypotenuse = null;
     let spread;
 
-    this.getHypotenuse = () => {
-        if (hypotenuse === null) {
+    function getHypotenuse() {
+        if (line.slope === Number.POSITIVE_INFINITY) {
+            return canvas.height;
+        } else if (line.slope === 0) {
+            return canvas.width;
+        } else if (hypotenuse === null) {
             const y = line.evaluate(xLength);
             const xExp = xLength * xLength;
             const yExp = y * y;
@@ -179,36 +196,40 @@ function Segment(line, canvas) {
         }
 
         return hypotenuse;
-    };
+    }
+
+    this.getHypotenuse = getHypotenuse;
 
     function init() {
         if (line.slope === Number.POSITIVE_INFINITY) {
-            hypotenuse = canvas.height;
+            xDelta = line.point1.x;
+            xLength = canvas.height;
             spread = 1;
         } else if (line.slope === 0) {
-            hypotenuse = canvas.width;
+            xDelta = 0;
+            xLength = canvas.width;
             spread = 1;
         } else {
             const xLengthMax = canvas.height / line.slope;
             const zone = canvas.getZone(line.point1);
             if (zone === 'C') {
                 xLength = xLengthMax;
-                xDelta = line.linearDistanceFrom(canvas.leftDiagonal) + xLength;
+                xDelta = line.linearDistanceFrom(canvas.leftDiagonal.point1) + xLength;
             } else if (zone === 'L') {
-                xLength = xLengthMax - line.linearDistanceFrom(canvas.leftDiagonal);
+                xLength = xLengthMax - line.linearDistanceFrom(canvas.leftDiagonal.point1);
                 xDelta = 0;
             } else {
-                xLength = xLengthMax - line.linearDistanceFrom(canvas.rightDiagonal);
+                xLength = xLengthMax - line.linearDistanceFrom(canvas.rightDiagonal.point1);
                 xDelta = 0;
             }
-            spread = 1 / (hypotenuse / xLength);
+            spread = 1 / (getHypotenuse() / xLength);
         }
     }
 
     this.calculatePoint = (factor) => {
         if (line.slope === Number.POSITIVE_INFINITY) {
             return new Point(line.point1.x, canvas.height * factor);
-        } else if (this.line.slope === 0) {
+        } else if (line.slope === 0) {
             return new Point(canvas.width * factor, line.point1.y);
         } else {
             if (xLength === null || xDelta === null) {
@@ -223,7 +244,7 @@ function Segment(line, canvas) {
     };
 
 
-    this.next = (point) => {
+    function next(point) {
         let nextP;
         if (line.slope === Number.POSITIVE_INFINITY) {
             nextP = new Point(point.x, point.y + 1);
@@ -240,19 +261,28 @@ function Segment(line, canvas) {
         } else {
             return nextP;
         }
-    };
+    }
 
     this.forEach = (cb) => {
-        let currentPoint = new Point(xDelta, line.evaluate(xDelta));
-        cb(currentPoint);
-        for (let x = spread * 0.99999; x < xLength; x+=spread) {
-            currentPoint = this.next();
+        if (xLength === null || xDelta === null) {
+            init();
+        }
+
+        const firstPoint = new Point(xDelta, line.evaluate(xDelta));
+        cb(firstPoint);
+
+        let currentPoint = next(firstPoint);
+        while (currentPoint != null) {
+            currentPoint = next(currentPoint);
             cb(currentPoint);
         }
     };
 }
 
 function Canvas(slope, width, height) {
+    this.width = width;
+    this.height = height;
+
     if (slope > 0) {
         this.left_x_edge = 0;
         this.left_y_edge = 0;
@@ -268,17 +298,15 @@ function Canvas(slope, width, height) {
     const rightDiagonalPoint = new Point(this.right_x_edge, this.right_y_edge);
     const leftDiagonalPoint = new Point(this.left_x_edge, this.left_y_edge);
 
-    const bottomEdge = Line.ofPointSlope(Point(0, 0), 0);
-    const leftEdge = Line.ofPointSlope(Point(0, 0), Number.POSITIVE_INFINITY);
-    const rightEdge = Line.ofPointSlope(Point(width, 0), Number.POSITIVE_INFINITY);
-    const upperEdge = Line.ofPointSlope(Point(0, height), 0);
+    const bottomEdge = Line.ofPointSlope(new Point(0, 0), 0);
+    const leftEdge = Line.ofPointSlope(new Point(0, 0), Number.POSITIVE_INFINITY);
+    const rightEdge = Line.ofPointSlope(new Point(width, 0), Number.POSITIVE_INFINITY);
+    const upperEdge = Line.ofPointSlope(new Point(0, height), 0);
 
     this.rightDiagonal = Line.ofPointSlope(rightDiagonalPoint, slope);
     this.leftDiagonal = Line.ofPointSlope(leftDiagonalPoint, slope);
 
-    this.getEdges = (line) => {
-        const point = line.point1;
-
+    this.getEdges = (point) => {
         if (this.leftDiagonal.isRightTo(point)) {
             if (slope > 1) {
                 return [leftEdge, upperEdge];
@@ -294,11 +322,12 @@ function Canvas(slope, width, height) {
                 return [rightEdge, upperEdge];
             }
         }
+
     };
 
     this.getZone = (point) => {
         if (this.leftDiagonal.isRightTo(point)) {
-            return 'L'
+            return 'L';
         } else if (this.rightDiagonal.isRightTo(point)) {
             return 'C';
         } else {
