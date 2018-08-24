@@ -73,7 +73,7 @@ function processImg() {
 }
 
 function length() {
-    const slope = slopeFromDegrees(90);
+    const slope = slopeFromDegrees(20);
     const point = new Point(1,1);
 
     const line = Line.ofPointSlope(point, slope);
@@ -82,7 +82,7 @@ function length() {
 
     const segment = new Segment(line, canvas);
 
-    return segment.getHypotenuse();
+    segment.forEach((elem)=>{console.log(elem)});
 }
 
 function slopeFromDegrees(degrees) {
@@ -93,10 +93,10 @@ function slopeFromDegrees(degrees) {
     if (slope === 16331239353195370 || slope === -16331239353195370) {
         return Number.POSITIVE_INFINITY;
     } else {
-        return round(slope);
+        return round(slope, 14);
     }
 }
-
+//2662
 function calculatePoint(point, slope, distance) {
     const newPoint = new Point();
     if (slope === Number.POSITIVE_INFINITY) {
@@ -154,16 +154,17 @@ class Line {
     };
 
     evaluate(x) {
+        if (this.slope === 0) {
+            return y;
+        } else if (this.slope === Number.POSITIVE_INFINITY) {
+            throw new Error('Can\'t calculate x because slope is infinite');
+        }
         return (-this.point1.x * this.slope) + (x * this.slope) + this.point1.y;
     }
 
     revEvaluate(y) {
         if (this.slope === 0) {
-            if (this.point1.y === y) {
-                return y;
-            } else {
-                throw new Error('Can\'t calculate x for y = ' + y + ' because slope is zero');
-            }
+            throw new Error('Can\'t calculate y because slope is zero');
         } else if (this.slope === Number.POSITIVE_INFINITY) {
             return line.point1.x;
         } else {
@@ -181,7 +182,7 @@ function Segment(line, canvas) {
     let xLength = null;
     let xDelta = null;
     let hypotenuse = null;
-    let spread;
+    let spread = null;
 
     function getHypotenuse() {
         if (line.slope === Number.POSITIVE_INFINITY) {
@@ -200,21 +201,21 @@ function Segment(line, canvas) {
 
     this.getHypotenuse = getHypotenuse;
 
-    function init() {
-        if (line.slope === Number.POSITIVE_INFINITY) {
-            xDelta = line.point1.x;
-            xLength = canvas.height;
-            spread = 1;
-        } else if (line.slope === 0) {
-            xDelta = 0;
-            xLength = canvas.width;
-            spread = 1;
+    function calculateXMaxLength() {
+        if (Math.abs(line.slope) < 1) {
+            return canvas.width;
         } else {
-            const xLengthMax = canvas.height / line.slope;
+            return canvas.height / line.slope;
+        }
+    }
+
+    function init() {
+        if (spread === null && line.slope !== Number.POSITIVE_INFINITY && line.slope !== 0) {
+            const xLengthMax = calculateXMaxLength();
             const zone = canvas.getZone(line.point1);
             if (zone === 'C') {
                 xLength = xLengthMax;
-                xDelta = line.linearDistanceFrom(canvas.leftDiagonal.point1) + xLength;
+                xDelta = line.linearDistanceFrom(canvas.leftDiagonal.point1);
             } else if (zone === 'L') {
                 xLength = xLengthMax - line.linearDistanceFrom(canvas.leftDiagonal.point1);
                 xDelta = 0;
@@ -226,17 +227,17 @@ function Segment(line, canvas) {
         }
     }
 
-    this.calculatePoint = (factor) => {
+    this.calculateRandomPoint = (randomInteger) => {
         if (line.slope === Number.POSITIVE_INFINITY) {
-            return new Point(line.point1.x, canvas.height * factor);
+            const randomY = randomInteger % getHypotenuse();
+            return new Point(line.point1.x, randomY);
         } else if (line.slope === 0) {
-            return new Point(canvas.width * factor, line.point1.y);
+            const randomX = randomInteger % getHypotenuse();
+            return new Point(randomX, line.point1.y);
         } else {
-            if (xLength === null || xDelta === null) {
-                init();
-            }
+            init();
 
-            const x = xLength * factor + xDelta;
+            const x = (randomInteger % xLength) + xDelta;
             const y = line.evaluate(x);
 
             return new Point(x, y);
@@ -256,19 +257,26 @@ function Segment(line, canvas) {
             nextP = new Point(xNext, yNext);
         }
 
-        if (nextP.x > canvas.height) {
+        if (nextP.x > canvas.height || nextP.y > canvas.width) {
             return null
         } else {
             return nextP;
         }
     }
 
-    this.forEach = (cb) => {
-        if (xLength === null || xDelta === null) {
+    function calculateFirstPoint() {
+        if (line.slope === Number.POSITIVE_INFINITY) {
+            return new Point(line.point1.x, 0);
+        } else if (line.slope === 0) {
+            return new Point(0, line.point1.y);
+        } else {
             init();
+            return new Point(xDelta, line.evaluate(xDelta));
         }
+    }
 
-        const firstPoint = new Point(xDelta, line.evaluate(xDelta));
+    this.forEach = (cb) => {
+        const firstPoint = calculateFirstPoint();
         cb(firstPoint);
 
         let currentPoint = next(firstPoint);
@@ -276,7 +284,7 @@ function Segment(line, canvas) {
             cb(currentPoint);
             currentPoint = next(currentPoint);
         }
-    };
+    }
 }
 
 function Canvas(slope, width, height) {
@@ -336,8 +344,8 @@ function Canvas(slope, width, height) {
     }
 }
 
-function round(number, length) {
-    return parseFloat(number.toFixed(length));
+function round(number, decimals) {
+    return parseFloat(number.toFixed(decimals));
 }
 
 function shuffle(data) {
