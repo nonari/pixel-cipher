@@ -272,9 +272,9 @@ function Segment(line, canvas) {
         cb(firstPoint);
 
         let currentPoint = next(firstPoint);
-        while (currentPoint != null) {
-            currentPoint = next(currentPoint);
+        while (currentPoint !== null) {
             cb(currentPoint);
+            currentPoint = next(currentPoint);
         }
     };
 }
@@ -337,7 +337,7 @@ function Canvas(slope, width, height) {
 }
 
 function round(number, length) {
-    return parseFloat(Number(number).toFixed(length));
+    return parseFloat(number.toFixed(length));
 }
 
 function shuffle(data) {
@@ -345,7 +345,7 @@ function shuffle(data) {
     let x0 = 1.0000001;
 
     for (let i = 0; i < data.length; i+=4) {
-        const x = 1 - 1.4 * Math.pow(x0, 2) + y0;
+        const x = 1 - 1.4 * x0 * x0 + y0;
         const y = 0.3 * x0;
 
         x0 = round(x, 14);
