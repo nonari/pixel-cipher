@@ -85,6 +85,26 @@ function length() {
     segment.forEach((elem)=>{console.log(elem)});
 }
 
+function scatter() {
+    const slope = slopeFromDegrees(20);
+
+    const canvas = new Canvas(slope, 200, 200);
+
+    const lines = canvas.getLines();
+    const points = [];
+    const t1 = new Date();
+    lines.forEach((oline) => {
+
+        const s = new Segment(oline, canvas);
+        s.forEach((pp)=>{
+            points.push(pp);
+        });
+    });
+    const t2 = new Date();
+    console.log(t2.valueOf() - t1.valueOf());
+    console.log(points);
+}
+
 function slopeFromDegrees(degrees) {
     const radians = degrees * (Math.PI / 180);
 
@@ -96,7 +116,7 @@ function slopeFromDegrees(degrees) {
         return round(slope, 14);
     }
 }
-//2662
+
 function calculatePoint(point, slope, distance) {
     const newPoint = new Point();
     if (slope === Number.POSITIVE_INFINITY) {
@@ -155,16 +175,27 @@ class Line {
 
     evaluate(x) {
         if (this.slope === 0) {
-            return y;
+            return this.point1.y;
         } else if (this.slope === Number.POSITIVE_INFINITY) {
-            throw new Error('Can\'t calculate x because slope is infinite');
+            throw new Error('Can\'t calculate y because slope is infinite');
+        } else {
+            return (-this.point1.x * this.slope) + (x * this.slope) + this.point1.y;
         }
-        return (-this.point1.x * this.slope) + (x * this.slope) + this.point1.y;
+    }
+
+    yOffset(xLength) {
+        if (this.slope === 0) {
+            throw new Error('Can\'t calculate y offset because slope is zero');
+        } else if (this.slope === Number.POSITIVE_INFINITY) {
+            throw new Error('Can\'t calculate y offset because slope is infinite');
+        } else {
+            return xLength * this.slope;
+        }
     }
 
     revEvaluate(y) {
         if (this.slope === 0) {
-            throw new Error('Can\'t calculate y because slope is zero');
+            throw new Error('Can\'t calculate x because slope is zero');
         } else if (this.slope === Number.POSITIVE_INFINITY) {
             return line.point1.x;
         } else {
@@ -182,7 +213,8 @@ function Segment(line, canvas) {
     let xLength = null;
     let xDelta = null;
     let hypotenuse = null;
-    let spread = null;
+    let xSpread = null;
+    let ySpread = null;
 
     function getHypotenuse() {
         if (line.slope === Number.POSITIVE_INFINITY) {
@@ -190,7 +222,7 @@ function Segment(line, canvas) {
         } else if (line.slope === 0) {
             return canvas.width;
         } else if (hypotenuse === null) {
-            const y = line.evaluate(xLength);
+            const y = line.yOffset(xLength);
             const xExp = xLength * xLength;
             const yExp = y * y;
             hypotenuse = Math.sqrt(xExp + yExp);
@@ -210,20 +242,38 @@ function Segment(line, canvas) {
     }
 
     function init() {
-        if (spread === null && line.slope !== Number.POSITIVE_INFINITY && line.slope !== 0) {
+        if (xSpread === null && line.slope !== Number.POSITIVE_INFINITY && line.slope !== 0) {
             const xLengthMax = calculateXMaxLength();
             const zone = canvas.getZone(line.point1);
-            if (zone === 'C') {
+
+            if (zone === 'CV') {
                 xLength = xLengthMax;
                 xDelta = line.linearDistanceFrom(canvas.leftDiagonal.point1);
+            } else if (zone === 'CH') {
+                xLength = xLengthMax;
+                xDelta = 0;
             } else if (zone === 'L') {
-                xLength = xLengthMax - line.linearDistanceFrom(canvas.leftDiagonal.point1);
+                if (line.slope > canvas.proportion) {
+                    const distance = line.linearDistanceFrom(canvas.leftDiagonal.point1);
+                    xLength = xLengthMax - distance;
+                } else {
+                    const distance = line.linearDistanceFrom(canvas.rightDiagonal.point1);
+                    xLength = xLengthMax - distance;
+                }
                 xDelta = 0;
             } else {
-                xLength = xLengthMax - line.linearDistanceFrom(canvas.rightDiagonal.point1);
-                xDelta = 0;
+                if (line.slope > canvas.proportion) {
+                    const distance = line.linearDistanceFrom(canvas.rightDiagonal.point1);
+                    xLength = xLengthMax - distance;
+                    xDelta = canvas.width - (xLengthMax - distance);
+                } else {
+                    const distance = line.linearDistanceFrom(canvas.leftDiagonal.point1);
+                    xLength = xLengthMax - distance;
+                    xDelta = canvas.width - (xLengthMax - distance);
+                }
             }
-            spread = 1 / (getHypotenuse() / xLength);
+            xSpread = 1 / (getHypotenuse() / xLength);
+            ySpread = xSpread * line.slope;
         }
     }
 
@@ -244,7 +294,6 @@ function Segment(line, canvas) {
         }
     };
 
-
     function next(point) {
         let nextP;
         if (line.slope === Number.POSITIVE_INFINITY) {
@@ -252,12 +301,12 @@ function Segment(line, canvas) {
         } else if (line.slope === 0) {
             nextP = new Point(point.x + 1, point.y);
         } else {
-            const xNext = point.x + spread;
-            const yNext = line.evaluate(point.x + spread);
+            const xNext = point.x + xSpread;
+            const yNext = point.y + ySpread;
             nextP = new Point(xNext, yNext);
         }
 
-        if (nextP.x > canvas.height || nextP.y > canvas.width) {
+        if (nextP.x > canvas.width || nextP.y > canvas.height) {
             return null
         } else {
             return nextP;
@@ -290,6 +339,8 @@ function Segment(line, canvas) {
 function Canvas(slope, width, height) {
     this.width = width;
     this.height = height;
+    this.proportion = height / width;
+    const invertSides = slope > this.proportion;
 
     if (slope > 0) {
         this.left_x_edge = 0;
@@ -306,41 +357,68 @@ function Canvas(slope, width, height) {
     const rightDiagonalPoint = new Point(this.right_x_edge, this.right_y_edge);
     const leftDiagonalPoint = new Point(this.left_x_edge, this.left_y_edge);
 
-    const bottomEdge = Line.ofPointSlope(new Point(0, 0), 0);
-    const leftEdge = Line.ofPointSlope(new Point(0, 0), Number.POSITIVE_INFINITY);
-    const rightEdge = Line.ofPointSlope(new Point(width, 0), Number.POSITIVE_INFINITY);
-    const upperEdge = Line.ofPointSlope(new Point(0, height), 0);
-
     this.rightDiagonal = Line.ofPointSlope(rightDiagonalPoint, slope);
     this.leftDiagonal = Line.ofPointSlope(leftDiagonalPoint, slope);
 
-    this.getEdges = (point) => {
-        if (this.leftDiagonal.isRightTo(point)) {
-            if (slope > 1) {
-                return [leftEdge, upperEdge];
+    this.getZone = (point) => {
+        if (invertSides) {
+            if (this.leftDiagonal.isRightTo(point)) {
+                return 'L';
+            } else if (this.rightDiagonal.isRightTo(point)) {
+                return 'CV';
             } else {
-                return [leftEdge, bottomEdge];
+                return 'R'
             }
-        } else if (this.rightDiagonal.isRightTo(point)) {
-            return [bottomEdge, upperEdge];
         } else {
-            if (slope > 1) {
-                return [rightEdge, bottomEdge];
+            if (this.rightDiagonal.isRightTo(point)) {
+                return 'L';
+            } else if (this.leftDiagonal.isRightTo(point)) {
+                return 'CH';
             } else {
-                return [rightEdge, upperEdge];
+                return 'R'
             }
         }
-
     };
 
-    this.getZone = (point) => {
-        if (this.leftDiagonal.isRightTo(point)) {
-            return 'L';
-        } else if (this.rightDiagonal.isRightTo(point)) {
-            return 'C';
+    this.getLines = () => {
+        if (slope === Number.POSITIVE_INFINITY) {
+            return byBottomSide();
+        } else if (slope === 0) {
+            return byLeftSide();
+        } else if (slope > 0) {
+            const leftLines = byLeftSide();
+            leftLines.reverse();
+            leftLines.pop();
+            return leftLines.concat(byBottomSide());
         } else {
-            return 'R';
+            const leftLines = byLeftSide();
+            leftLines.pop();
+            return byLeftSide().concat(byUpperSide());
         }
+    };
+
+    function byLeftSide() {
+        const lines = [];
+        for (let y = 0; y < height; y++) {
+            lines.push(Line.ofPointSlope(new Point(0, y), slope));
+        }
+        return lines;
+    }
+
+    function byBottomSide() {
+        const lines = [];
+        for (let x = 0; x < height; x++) {
+            lines.push(Line.ofPointSlope(new Point(x, 0), slope));
+        }
+        return lines;
+    }
+
+    function byUpperSide() {
+        const lines = [];
+        for (let x = 0; x < height; x++) {
+            lines.push(Line.ofPointSlope(new Point(x, height - 1), slope));
+        }
+        return lines;
     }
 }
 
