@@ -91,18 +91,25 @@ function scatter() {
     const canvas = new Canvas(slope, 200, 200);
 
     const lines = canvas.getLines();
-    const points = [];
-    const t1 = new Date();
-    lines.forEach((oline) => {
 
+    const points = [];
+    lines.forEach((oline) => {
         const s = new Segment(oline, canvas);
         s.forEach((pp)=>{
             points.push(pp);
         });
     });
-    const t2 = new Date();
-    console.log(t2.valueOf() - t1.valueOf());
-    console.log(points);
+
+    const generator = new HenonMap();
+
+    const rndPoint = generator.next();
+
+    const isEven = rndPoint.x % 2 === 0;
+
+    for (const point of points) {
+
+    }
+
 }
 
 function slopeFromDegrees(degrees) {
@@ -146,6 +153,10 @@ class Point {
         this.x = x;
         this.y = y;
     };
+
+    sameCell(point) {
+        return (this.x.toFixed(0) === point.x.toFixed(0)) && (this.x.toFixed(0) === point.x.toFixed(0));
+    }
 }
 
 class Line {
@@ -294,22 +305,26 @@ function Segment(line, canvas) {
         }
     };
 
-    function next(point) {
-        let nextP;
-        if (line.slope === Number.POSITIVE_INFINITY) {
-            nextP = new Point(point.x, point.y + 1);
-        } else if (line.slope === 0) {
-            nextP = new Point(point.x + 1, point.y);
-        } else {
-            const xNext = point.x + xSpread;
-            const yNext = point.y + ySpread;
-            nextP = new Point(xNext, yNext);
-        }
+    function next(prevPoint) {
+        let currentPoint = prevPoint;
+        while(true) {
+            let nextP;
+            if (line.slope === Number.POSITIVE_INFINITY) {
+                nextP = new Point(currentPoint.x, currentPoint.y + 1);
+            } else if (line.slope === 0) {
+                nextP = new Point(currentPoint.x + 1, currentPoint.y);
+            } else {
+                const xNext = currentPoint.x + xSpread;
+                const yNext = currentPoint.y + ySpread;
+                nextP = new Point(xNext, yNext);
+            }
 
-        if (nextP.x > canvas.width || nextP.y > canvas.height) {
-            return null
-        } else {
-            return nextP;
+            if (nextP.x > canvas.width || nextP.y > canvas.height) {
+                return null
+            } else if (!nextP.sameCell(currentPoint)) {
+                return nextP;
+            }
+            currentPoint = nextP;
         }
     }
 
@@ -331,6 +346,7 @@ function Segment(line, canvas) {
         let currentPoint = next(firstPoint);
         while (currentPoint !== null) {
             cb(currentPoint);
+
             currentPoint = next(currentPoint);
         }
     }
@@ -340,7 +356,11 @@ function Canvas(slope, width, height) {
     this.width = width;
     this.height = height;
     this.proportion = height / width;
+
+    const invertedSlope = 1 / slope;
     const invertSides = slope > this.proportion;
+
+    let lastLine;
 
     if (slope > 0) {
         this.left_x_edge = 0;
@@ -389,12 +409,16 @@ function Canvas(slope, width, height) {
             const leftLines = byLeftSide();
             leftLines.reverse();
             leftLines.pop();
-            return leftLines.concat(byBottomSide());
+            return leftLines.concat(byBottomSide(invertedSlope));
         } else {
             const leftLines = byLeftSide();
             leftLines.pop();
-            return byLeftSide().concat(byUpperSide());
+            return byLeftSide().concat(byUpperSide(invertedSlope));
         }
+    };
+
+    this.getSegment = (line) => {
+
     };
 
     function byLeftSide() {
@@ -405,17 +429,19 @@ function Canvas(slope, width, height) {
         return lines;
     }
 
-    function byBottomSide() {
+    function byBottomSide(distance) {
+        const xJump = typeof distance !== 'undefined' ? distance : 1;
         const lines = [];
-        for (let x = 0; x < height; x++) {
+        for (let x = 0; x < width; x+= xJump) {
             lines.push(Line.ofPointSlope(new Point(x, 0), slope));
         }
         return lines;
     }
 
-    function byUpperSide() {
+    function byUpperSide(distance) {
+        const xJump = typeof distance !== 'undefined' ? distance : 1;
         const lines = [];
-        for (let x = 0; x < height; x++) {
+        for (let x = 0; x < width; x+= xJump) {
             lines.push(Line.ofPointSlope(new Point(x, height - 1), slope));
         }
         return lines;
@@ -424,6 +450,24 @@ function Canvas(slope, width, height) {
 
 function round(number, decimals) {
     return parseFloat(number.toFixed(decimals));
+}
+
+function HenonMap(a, b) {
+    let y0 = typeof a !== 'undefined' ? a + 0.0000001 : 1;
+    let x0 = typeof b !== 'undefined' ? b + 0.0000001 : 1.0000001;
+
+    this.next = () => {
+        const x = 1 - 1.4 * x0 * x0 + y0;
+        const y = 0.3 * x0;
+
+        x0 = round(x, 14);
+        y0 = round(y, 14);
+
+        const xr = Number.parseInt(x.toString().slice(4,9)) % image.width;
+        const yr = Number.parseInt(y.toString().slice(4,9)) % image.height;
+
+        return new Point(xr, yr);
+    }
 }
 
 function shuffle(data) {
