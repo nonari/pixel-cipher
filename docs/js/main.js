@@ -66,10 +66,11 @@ function getContext(anchor) {
 function processImg() {
     const ctx_in = getContext('in_img');
     const data = ctx_in.getImageData(0,0,200,200);
-    shuffle(data.data);
+    scatter(data.data);
 
     const ctx_out = getContext('out_img');
     ctx_out.putImageData(data, 0, 0);
+
 }
 
 function length() {
@@ -85,7 +86,7 @@ function length() {
     segment.forEach((elem)=>{console.log(elem)});
 }
 
-function scatter() {
+function scatter(data) {
     const slope = slopeFromDegrees(20);
 
     const canvas = new Canvas(slope, 200, 200);
@@ -100,15 +101,7 @@ function scatter() {
         });
     });
 
-    const generator = new HenonMap();
-
-    const rndPoint = generator.next();
-
-    const isEven = rndPoint.x % 2 === 0;
-
-    for (const point of points) {
-
-    }
+    tiltedScattering(data, points)
 
 }
 
@@ -156,6 +149,21 @@ class Point {
 
     sameCell(point) {
         return (this.x.toFixed(0) === point.x.toFixed(0)) && (this.x.toFixed(0) === point.x.toFixed(0));
+    }
+
+    calculateLinealValue(width, grouping) {
+        return (this.y * width + this.x) * ifDefOr(grouping, 1);
+    }
+}
+
+function ifDefOr(value, alternative) {
+    failIfNotDef(alternative, 'function ifDefOr needs an alternative');
+    return typeof value !== 'undefined' ? value : alternative;
+}
+
+function failIfNotDef(value, message) {
+    if (typeof value === 'undefined') {
+        throw new Error(message);
     }
 }
 
@@ -452,53 +460,120 @@ function round(number, decimals) {
     return parseFloat(number.toFixed(decimals));
 }
 
-function HenonMap(a, b) {
+function HenonMap(xMax, yMax, a, b) {
     let y0 = typeof a !== 'undefined' ? a + 0.0000001 : 1;
     let x0 = typeof b !== 'undefined' ? b + 0.0000001 : 1.0000001;
 
+    const bounded = typeof xMax !== 'undefined' && typeof yMax !== 'undefined';
+
+    let sequenceForReversal = null;
+
+    this.reverse = (n) => {
+        sequenceForReversal = [];
+        for (let i = 0; i < n; i++) {
+            //FIXME
+            sequenceForReversal.push(this.next());
+        }
+    };
+
     this.next = () => {
+        if (sequenceForReversal !== null) {
+            if (sequenceForReversal.length > 0) {
+                return sequenceForReversal.pop();
+            } else {
+                return null;
+            }
+        }
+
         const x = 1 - 1.4 * x0 * x0 + y0;
         const y = 0.3 * x0;
 
         x0 = round(x, 14);
         y0 = round(y, 14);
 
-        const xr = Number.parseInt(x.toString().slice(4,9)) % image.width;
-        const yr = Number.parseInt(y.toString().slice(4,9)) % image.height;
+        const xr = Number.parseInt(x.toString().slice(4,9));
+        const yr = Number.parseInt(y.toString().slice(4,9)) % yMax;
 
-        return new Point(xr, yr);
+        if (bounded) {
+            return new Point(xr % xMax, yr % yMax);
+        } else {
+            return new Point(xr, yr);
+        }
+    };
+
+    this.calculateNext = () => {
+
+    };
+
+}
+
+function encrypt(data) {
+    const generator = new HenonMap(image.width, image.height);
+    generator.reverse(image.width * image.height);
+
+    shuffle2(data, generator);
+}
+
+function decrypt(data) {
+    const generator = new HenonMap(image.width, image.height);
+
+    shuffle2(data, generator);
+}
+
+function shuffle2(data, generator) {
+    for (let i = 0; i < data.length; i+=4) {
+        const rndPoint = generator.next();
+        const xy = (rndPoint.x + (rndPoint.y * image.width)) * 4;
+
+        switchPositions(data, xy, i);
     }
 }
 
-function shuffle(data) {
-    let y0 = 1;
-    let x0 = 1.0000001;
+function tiltedScattering(data, points) {
+    const generator = new HenonMap(image.width, image.height);
+    generator.reverse(points.length);
+    const pixelsInImage = image.width * image.height;
+    const scatteringDistance = 200;
 
-    for (let i = 0; i < data.length; i+=4) {
-        const x = 1 - 1.4 * x0 * x0 + y0;
-        const y = 0.3 * x0;
+    for (const point of points) {
+        const pointToSwitchPosition = point.calculateLinealValue(image.width, 4);
 
-        x0 = round(x, 14);
-        y0 = round(y, 14);
+        const rndPoint = generator.next();
+        const randomOffset = rndPoint.x % scatteringDistance;
+        const sign = rndPoint.x % 2 === 0 ? 1 : -1;
 
-        const xr = Number.parseInt(x.toString().slice(4,9)) % image.width;
-        const yr = Number.parseInt(y.toString().slice(4,9)) % image.height;
-        const xy = (xr + (yr * image.width)) * 4;
+        let newPosition;
+        if (sign > 0) {
+            newPosition = pointToSwitchPosition + randomOffset;
+            const offsetExcess = pixelsInImage - 1 - newPosition;
+            if (offsetExcess < 0) {
+                newPosition = pointToSwitchPosition - (scatteringDistance + offsetExcess);
+            }
+        } else {
+            newPosition = pointToSwitchPosition - randomOffset;
+            if (newPosition < 0) {
+                newPosition = pointToSwitchPosition + (scatteringDistance - newPosition);
+            }
+        }
 
-        const rr = data[xy];
-        const gr = data[xy+1];
-        const br = data[xy+2];
-
-        const r = data[i];
-        const g = data[i+1];
-        const b = data[i+2];
-
-        data[i] = rr;
-        data[i+1] = gr;
-        data[i+2] = br;
-
-        data[xy] = r;
-        data[xy+1] = g;
-        data[xy+2] = b;
+        switchPositions(data, pointToSwitchPosition, newPosition * 4);
     }
+}
+
+function switchPositions(data, i, j) {
+    const rr = data[j];
+    const gr = data[j+1];
+    const br = data[j+2];
+
+    const r = data[i];
+    const g = data[i+1];
+    const b = data[i+2];
+
+    data[i] = rr;
+    data[i+1] = gr;
+    data[i+2] = br;
+
+    data[j] = r;
+    data[j+1] = g;
+    data[j+2] = b;
 }
