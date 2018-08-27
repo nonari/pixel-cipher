@@ -87,11 +87,12 @@ function length() {
 }
 
 function scatter(data) {
-    const slope = slopeFromDegrees(20);
+    const slope = slopeFromDegrees(45);
 
-    const canvas = new Canvas(slope, 200, 200);
+    const canvas = new Canvas(slope, image.width, image.height);
 
     const lines = canvas.getLines();
+    console.log(lines);
 
     const points = [];
     lines.forEach((oline) => {
@@ -148,11 +149,27 @@ class Point {
     };
 
     sameCell(point) {
-        return (this.x.toFixed(0) === point.x.toFixed(0)) && (this.x.toFixed(0) === point.x.toFixed(0));
+        return (Math.trunc(this.x) === Math.trunc(point.x)) && (Math.trunc(this.x) === Math.trunc(point.x));
     }
 
-    calculateLinealValue(width, grouping) {
-        return (this.y * width + this.x) * ifDefOr(grouping, 1);
+    calcLinealIntValue(width, steps) {
+        const xInt = Math.trunc(this.x);
+        const yInt = Math.trunc(this.y);
+        return Math.trunc(yInt * width + xInt) * ifDefOr(steps, 1);
+    }
+
+    static calcPointOf(value, width) {
+        const y = Math.trunc(value / width);
+        const x = value % width;
+        return new Point(x, y);
+    }
+
+    toString(displayAsInt) {
+        if (ifDefOr(displayAsInt, false)) {
+            return '{x: ' + Math.trunc(this.x) + ',y: ' + Math.trunc(this.y) + '}'
+        } else {
+            return '{x: ' + this.x + ',y: ' + this.y + '}'
+        }
     }
 }
 
@@ -471,20 +488,11 @@ function HenonMap(xMax, yMax, a, b) {
     this.reverse = (n) => {
         sequenceForReversal = [];
         for (let i = 0; i < n; i++) {
-            //FIXME
-            sequenceForReversal.push(this.next());
+            sequenceForReversal.push(calculateNext());
         }
     };
 
-    this.next = () => {
-        if (sequenceForReversal !== null) {
-            if (sequenceForReversal.length > 0) {
-                return sequenceForReversal.pop();
-            } else {
-                return null;
-            }
-        }
-
+    function calculateNext() {
         const x = 1 - 1.4 * x0 * x0 + y0;
         const y = 0.3 * x0;
 
@@ -499,12 +507,19 @@ function HenonMap(xMax, yMax, a, b) {
         } else {
             return new Point(xr, yr);
         }
+    }
+
+    this.next = () => {
+        if (sequenceForReversal !== null) {
+            if (sequenceForReversal.length > 0) {
+                return sequenceForReversal.pop();
+            } else {
+                return null;
+            }
+        } else {
+            return calculateNext();
+        }
     };
-
-    this.calculateNext = () => {
-
-    };
-
 }
 
 function encrypt(data) {
@@ -535,45 +550,48 @@ function tiltedScattering(data, points) {
     const pixelsInImage = image.width * image.height;
     const scatteringDistance = 200;
 
-    for (const point of points) {
-        const pointToSwitchPosition = point.calculateLinealValue(image.width, 4);
+    console.log(points);
+    for (let i = 0; i < points.length; i++) {
 
+        const pointToSwitchPosition = points[i].calcLinealIntValue(image.width);
         const rndPoint = generator.next();
         const randomOffset = rndPoint.x % scatteringDistance;
         const sign = rndPoint.x % 2 === 0 ? 1 : -1;
 
         let newPosition;
         if (sign > 0) {
-            newPosition = pointToSwitchPosition + randomOffset;
+            newPosition = i + randomOffset;
             const offsetExcess = pixelsInImage - 1 - newPosition;
             if (offsetExcess < 0) {
-                newPosition = pointToSwitchPosition - (scatteringDistance + offsetExcess);
+                newPosition = i - (scatteringDistance + offsetExcess);
             }
         } else {
-            newPosition = pointToSwitchPosition - randomOffset;
+            newPosition = i - randomOffset;
             if (newPosition < 0) {
-                newPosition = pointToSwitchPosition + (scatteringDistance - newPosition);
+                newPosition = i + (scatteringDistance - newPosition);
             }
         }
-
-        switchPositions(data, pointToSwitchPosition, newPosition * 4);
+        switchPositions(data, pointToSwitchPosition, points[newPosition].calcLinealIntValue(image.width));
     }
 }
 
 function switchPositions(data, i, j) {
-    const rr = data[j];
-    const gr = data[j+1];
-    const br = data[j+2];
+    const iShift = i * 4;
+    const jShift = j * 4;
 
-    const r = data[i];
-    const g = data[i+1];
-    const b = data[i+2];
+    const rr = data[jShift];
+    const gr = data[jShift+1];
+    const br = data[jShift+2];
 
-    data[i] = rr;
-    data[i+1] = gr;
-    data[i+2] = br;
+    const r = data[iShift];
+    const g = data[iShift+1];
+    const b = data[iShift+2];
 
-    data[j] = r;
-    data[j+1] = g;
-    data[j+2] = b;
+    data[iShift] = rr;
+    data[iShift+1] = gr;
+    data[iShift+2] = br;
+
+    data[jShift] = r;
+    data[jShift+1] = g;
+    data[jShift+2] = b;
 }
