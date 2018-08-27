@@ -149,7 +149,7 @@ class Point {
     };
 
     sameCell(point) {
-        return (Math.trunc(this.x) === Math.trunc(point.x)) && (Math.trunc(this.x) === Math.trunc(point.x));
+        return (Math.trunc(this.x) === Math.trunc(point.x)) && (Math.trunc(this.y) === Math.trunc(point.y));
     }
 
     calcLinealIntValue(width, steps) {
@@ -547,7 +547,7 @@ function shuffle2(data, generator) {
 function tiltedScattering(data, points) {
     const generator = new HenonMap(image.width, image.height);
     generator.reverse(points.length);
-    const pixelsInImage = image.width * image.height;
+    const pointsInCanvas = points.length;
     const scatteringDistance = 200;
 
     console.log(points);
@@ -561,7 +561,7 @@ function tiltedScattering(data, points) {
         let newPosition;
         if (sign > 0) {
             newPosition = i + randomOffset;
-            const offsetExcess = pixelsInImage - 1 - newPosition;
+            const offsetExcess = pointsInCanvas - 1 - newPosition;
             if (offsetExcess < 0) {
                 newPosition = i - (scatteringDistance + offsetExcess);
             }
