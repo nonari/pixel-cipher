@@ -20,7 +20,28 @@
         </div>
         <div id="cnt_im">
             <div id="cnt_im_pre"><canvas id="in_img"></canvas></div>
-            <div id="cnt_btn_tra"></div>
+            <div id="cnt_btn_tra">
+                <div id="scattering_type">
+                    <p>Encryption mode:</p>
+                    <div>
+                        <button id="even_btn" disabled onclick="scatteringMode(1)">Even</button>
+                        <button id="tilted_btn" onclick="scatteringMode(2)">Tilted</button>
+                    </div>
+                </div>
+                <div>
+                    <div>
+                        <label for="angle_input">Angle:</label>
+                        <input type="number" id="angle_input"/>
+                    </div>
+                    <div>
+                        <label for="distance_input">Range:</label>
+                        <input type="number" id="distance_input"/>
+                    </div>
+                </div>
+                <div>
+                    <button id="debug_btn">DEBUG</button>
+                </div>
+            </div>
             <div id="cnt_im_post"><canvas id="out_img"></canvas></div>
         </div>
         <script src="js/main.js"></script>

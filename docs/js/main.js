@@ -34,7 +34,10 @@ function loadImage() {
     else {
         const file = input.files[0];
         const fr = new FileReader();
-        fr.onload = () => createImage(fr.result);
+        fr.onload = () => {
+            createImage(fr.result);
+            enableOperationButtons();
+        };
         fr.readAsDataURL(file);
     }
 }
@@ -70,7 +73,23 @@ function processImg() {
 
     const ctx_out = getContext('out_img');
     ctx_out.putImageData(data, 0, 0);
+}
 
+let mode = 1;
+function scatteringMode(mode) {
+    mode = this.mode;
+
+    if (mode === 1) {
+        document.getElementById('tilted_btn').setAttribute('disabled', '');
+        document.getElementById('even_btn').removeAttribute('disabled');
+    } else {
+        document.getElementById('even_btn').setAttribute('disabled', '');
+        document.getElementById('tilted_btn').removeAttribute('disabled');
+    }
+}
+
+function enableOperationButtons() {
+    document.getElementsByClassName('operation_btn')
 }
 
 function length() {

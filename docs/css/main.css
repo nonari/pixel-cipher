@@ -179,6 +179,16 @@ html,body {
     width: 20%;
 }
 
+#cnt_btn_tra > div {
+    margin: 1em;
+    border: solid;
+    text-align: center;
+}
+
+#cnt_btn_tra > div input {
+    width: 50px;
+}
+
 
 /* ==========================================================================
    Helper classes
