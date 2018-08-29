@@ -11,7 +11,7 @@ if (document.readyState === "complete" || document.readyState !== "loading") {
 }
 
 let image;
-const cxtsByAnchor = new Map();
+const ctxByAnchor = new Map();
 
 function loadImage() {
 
@@ -54,21 +54,21 @@ function drawImage(anchor) {
 }
 
 function getContext(anchor) {
-    if (cxtsByAnchor.has(anchor)) {
-        return cxtsByAnchor.get(anchor);
+    if (ctxByAnchor.has(anchor)) {
+        return ctxByAnchor.get(anchor);
     }
     const canvas = document.getElementById(anchor);
     canvas.width = image.width;
     canvas.height = image.height;
     const ctx = canvas.getContext("2d");
-    cxtsByAnchor.set(anchor, ctx);
+    ctxByAnchor.set(anchor, ctx);
 
     return ctx;
 }
 
 function processImg() {
     const ctx_in = getContext('in_img');
-    const data = ctx_in.getImageData(0,0,200,200);
+    const data = ctx_in.getImageData(0, 0, image.width, image.height);
     scatter(data.data);
 
     const ctx_out = getContext('out_img');
@@ -76,33 +76,41 @@ function processImg() {
 }
 
 let mode = 1;
+const global = this;
 function scatteringMode(mode) {
-    mode = this.mode;
+    global.mode = mode;
 
     if (mode === 1) {
-        document.getElementById('tilted_btn').setAttribute('disabled', '');
-        document.getElementById('even_btn').removeAttribute('disabled');
-    } else {
         document.getElementById('even_btn').setAttribute('disabled', '');
         document.getElementById('tilted_btn').removeAttribute('disabled');
+    } else {
+        document.getElementById('tilted_btn').setAttribute('disabled', '');
+        document.getElementById('even_btn').removeAttribute('disabled');
     }
 }
 
 function enableOperationButtons() {
-    document.getElementsByClassName('operation_btn')
+    const buttons = document.getElementsByClassName('operation_btn');
+    for (const button of buttons) {
+        button.removeAttribute('disabled');
+    }
 }
 
-function length() {
-    const slope = slopeFromDegrees(20);
-    const point = new Point(1,1);
+function disableOperationButtons() {
+    const buttons = document.getElementsByClassName('operation_btn');
+    for (const button of buttons) {
+        button.setAttribute('disabled', '');
+    }
+}
 
-    const line = Line.ofPointSlope(point, slope);
-
-    const canvas = new Canvas(slope, 200, 200);
-
-    const segment = new Segment(line, canvas);
-
-    segment.forEach((elem)=>{console.log(elem)});
+function clear_img() {
+    const ctx_in = getContext('in_img');
+    const data = ctx_in.getImageData(0, 0, image.width, image.height);
+    for(let i = 0; i < data.data.length; i+=4) {
+        data.data[i+3] = 0;
+    }
+    ctx_in.putImageData(data, 0, 0);
+    disableOperationButtons();
 }
 
 function scatter(data) {
@@ -122,7 +130,6 @@ function scatter(data) {
     });
 
     tiltedScattering(data, points)
-
 }
 
 function slopeFromDegrees(degrees) {
@@ -174,7 +181,7 @@ class Point {
     calcLinealIntValue(width, steps) {
         const xInt = Math.trunc(this.x);
         const yInt = Math.trunc(this.y);
-        return Math.trunc(yInt * width + xInt) * ifDefOr(steps, 1);
+        return (yInt * width + xInt) * ifDefOr(steps, 1);
     }
 
     static calcPointOf(value, width) {
@@ -519,7 +526,7 @@ function HenonMap(xMax, yMax, a, b) {
         y0 = round(y, 14);
 
         const xr = Number.parseInt(x.toString().slice(4,9));
-        const yr = Number.parseInt(y.toString().slice(4,9)) % yMax;
+        const yr = Number.parseInt(y.toString().slice(4,9));
 
         if (bounded) {
             return new Point(xr % xMax, yr % yMax);
@@ -569,7 +576,6 @@ function tiltedScattering(data, points) {
     const pointsInCanvas = points.length;
     const scatteringDistance = 200;
 
-    console.log(points);
     for (let i = 0; i < points.length; i++) {
 
         const pointToSwitchPosition = points[i].calcLinealIntValue(image.width);
