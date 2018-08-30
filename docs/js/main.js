@@ -66,10 +66,10 @@ function getContext(anchor) {
     return ctx;
 }
 
-function processImg() {
+function processImg(reverse) {
     const ctx_in = getContext('in_img');
     const data = ctx_in.getImageData(0, 0, image.width, image.height);
-    scatter(data.data);
+    encrypt(data.data, reverse);
 
     const ctx_out = getContext('out_img');
     ctx_out.putImageData(data, 0, 0);
@@ -103,17 +103,30 @@ function disableOperationButtons() {
     }
 }
 
-function clear_img() {
-    const ctx_in = getContext('in_img');
+function clear() {
+    clear_img('in_img');
+    clear_img('out_img');
+    disableOperationButtons();
+}
+
+function clear_img(anchor) {
+    const ctx_in = getContext(anchor);
     const data = ctx_in.getImageData(0, 0, image.width, image.height);
     for(let i = 0; i < data.data.length; i+=4) {
         data.data[i+3] = 0;
     }
     ctx_in.putImageData(data, 0, 0);
-    disableOperationButtons();
 }
 
-function scatter(data) {
+function encrypt(data, reverse) {
+    if (mode === 1) {
+        evenEncryption(data, reverse);
+    } else {
+        scatter(data, reverse);
+    }
+}
+
+function scatter(data, reverse) {
     const slope = slopeFromDegrees(45);
 
     const canvas = new Canvas(slope, image.width, image.height);
@@ -128,8 +141,11 @@ function scatter(data) {
             points.push(pp);
         });
     });
-
-    tiltedScattering(data, points)
+    if(reverse) {
+        tiltedScatteringRev(data, points, reverse);
+    } else {
+        tiltedScattering(data, points, reverse);
+    }
 }
 
 function slopeFromDegrees(degrees) {
@@ -548,35 +564,96 @@ function HenonMap(xMax, yMax, a, b) {
     };
 }
 
-function encrypt(data) {
+function evenEncryption(data, reverse) {
     const generator = new HenonMap(image.width, image.height);
-    generator.reverse(image.width * image.height);
-
-    shuffle2(data, generator);
+    if (reverse) {
+        generator.reverse(image.width * image.height);
+        shuffle2rev(data, generator, reverse)
+    } else {
+        shuffle2(data, generator, reverse);
+    }
 }
 
-function decrypt(data) {
-    const generator = new HenonMap(image.width, image.height);
+function shuffle2(data, generator, reverse) {
+    const singleStepLength = data.length / 4;
+    const range = reverse ? new Range(singleStepLength, 0) : new Range(0, singleStepLength);
 
-    shuffle2(data, generator);
-}
-
-function shuffle2(data, generator) {
-    for (let i = 0; i < data.length; i+=4) {
+    for (let i = 0; i < singleStepLength; i++) {
         const rndPoint = generator.next();
-        const xy = (rndPoint.x + (rndPoint.y * image.width)) * 4;
+        const xy = (rndPoint.x + (rndPoint.y * image.width));
 
         switchPositions(data, xy, i);
     }
 }
 
-function tiltedScattering(data, points) {
+function shuffle2rev(data, generator, reverse) {
+    const singleStepLength = data.length / 4;
+    const range = reverse ? new Range(singleStepLength, 0) : new Range(0, singleStepLength);
+
+    for (let i = singleStepLength - 1; i >= 0; i--) {
+        const rndPoint = generator.next();
+        const xy = (rndPoint.x + (rndPoint.y * image.width));
+
+        switchPositions(data, xy, i);
+    }
+}
+
+function Range(ini, last) {
+    let current = ini;
+    const step = ini < last ? 1 : -1;
+
+    this.next = () => {
+        const last = current;
+        current += step;
+        return last;
+    }
+}
+
+function tiltedScattering(data, points, reverse) {
     const generator = new HenonMap(image.width, image.height);
-    generator.reverse(points.length);
     const pointsInCanvas = points.length;
+
+    if (reverse) {
+        generator.reverse(pointsInCanvas);
+    }
+
     const scatteringDistance = 200;
 
     for (let i = 0; i < points.length; i++) {
+
+        const pointToSwitchPosition = points[i].calcLinealIntValue(image.width);
+        const rndPoint = generator.next();
+        const randomOffset = rndPoint.x % scatteringDistance;
+        const sign = rndPoint.x % 2 === 0 ? 1 : -1;
+
+        let newPosition;
+        if (sign > 0) {
+            newPosition = i + randomOffset;
+            const offsetExcess = pointsInCanvas - 1 - newPosition;
+            if (offsetExcess < 0) {
+                newPosition = i - (scatteringDistance + offsetExcess);
+            }
+        } else {
+            newPosition = i - randomOffset;
+            if (newPosition < 0) {
+                newPosition = i + (scatteringDistance - newPosition);
+            }
+        }
+        switchPositions(data, pointToSwitchPosition, points[newPosition].calcLinealIntValue(image.width));
+    }
+}
+
+function tiltedScatteringRev(data, points, reverse) {
+    const generator = new HenonMap(image.width, image.height);
+    const pointsInCanvas = points.length;
+
+    if (reverse) {
+        generator.reverse(pointsInCanvas);
+    }
+
+    const scatteringDistance = 200;
+
+    for (let i = points.length - 1; i >= 0; i--) {
 
         const pointToSwitchPosition = points[i].calcLinealIntValue(image.width);
         const rndPoint = generator.next();
