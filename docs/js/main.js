@@ -119,7 +119,7 @@ function clear_img(anchor) {
 }
 
 function encrypt(data, reverse) {
-    if (mode === 1) {
+    if (global.mode === 1) {
         evenEncryption(data, reverse);
     } else {
         scatter(data, reverse);
