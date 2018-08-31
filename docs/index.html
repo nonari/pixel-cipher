@@ -14,9 +14,9 @@
             <input id="in_file" type="file">
         </div>
         <div id="cnt_btns">
-            <button id="btn_dec" onclick="processImg()">DECRYPT</button>
-            <button disabled id="btn_enc">ENCRYPT</button>
-            <button disabled id="btn_clr">CLEAR</button>
+            <button disabled id="btn_dec" class="operation_btn" onclick="processImg(false)">DECRYPT</button>
+            <button disabled id="btn_enc" class="operation_btn" onclick="processImg(true)">ENCRYPT</button>
+            <button disabled id="btn_clr" class="operation_btn" onclick="clear()">CLEAR</button>
         </div>
         <div id="cnt_im">
             <div id="cnt_im_pre"><canvas id="in_img"></canvas></div>
