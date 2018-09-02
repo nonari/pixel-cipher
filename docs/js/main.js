@@ -75,8 +75,8 @@ function processImg(reverse) {
     ctx_out.putImageData(data, 0, 0);
 }
 
-let mode = 1;
 const global = this;
+global.mode = 1;
 function scatteringMode(mode) {
     global.mode = mode;
 
@@ -568,7 +568,7 @@ function evenEncryption(data, reverse) {
     const generator = new HenonMap(image.width, image.height);
     if (reverse) {
         generator.reverse(image.width * image.height);
-        shuffle2rev(data, generator, reverse)
+        shuffle2(data, generator, reverse)
     } else {
         shuffle2(data, generator, reverse);
     }
@@ -576,37 +576,27 @@ function evenEncryption(data, reverse) {
 
 function shuffle2(data, generator, reverse) {
     const singleStepLength = data.length / 4;
-    const range = reverse ? new Range(singleStepLength, 0) : new Range(0, singleStepLength);
 
-    for (let i = 0; i < singleStepLength; i++) {
-        const rndPoint = generator.next();
-        const xy = (rndPoint.x + (rndPoint.y * image.width));
+    doFor(singleStepLength, reverse, (pos) => shuffleNext(data, generator, pos));
+}
 
-        switchPositions(data, xy, i);
+function doFor(iterations, reverse, fun) {
+    if (reverse) {
+        for (let i = iterations - 1; i >= 0; i--) {
+            fun(i);
+        }
+    } else {
+        for (let i = 0; i < iterations; i++) {
+            fun(i);
+        }
     }
 }
 
-function shuffle2rev(data, generator, reverse) {
-    const singleStepLength = data.length / 4;
-    const range = reverse ? new Range(singleStepLength, 0) : new Range(0, singleStepLength);
+function shuffleNext(data, generator, pos) {
+    const rndPoint = generator.next();
+    const xy = (rndPoint.x + (rndPoint.y * image.width));
 
-    for (let i = singleStepLength - 1; i >= 0; i--) {
-        const rndPoint = generator.next();
-        const xy = (rndPoint.x + (rndPoint.y * image.width));
-
-        switchPositions(data, xy, i);
-    }
-}
-
-function Range(ini, last) {
-    let current = ini;
-    const step = ini < last ? 1 : -1;
-
-    this.next = () => {
-        const last = current;
-        current += step;
-        return last;
-    }
+    switchPositions(data, xy, pos);
 }
 
 function tiltedScattering(data, points, reverse) {

@@ -91,6 +91,7 @@ for (let i = 0; i<30000; i++) {
     for (let j = 0; j<30000; j++) {
         uint[ij] = ij;
         ij++;
+        const gr = uint[ij];
     }
 }
 const t14 = new Date();
@@ -99,14 +100,27 @@ console.log(t14.valueOf() - t13.valueOf());
 const t15 = new Date();
 const uint2 = new Uint32Array(900000000);
 let ij2 = 0;
-for (let i = 0; i<30000; i++) {
+for (let i = 0; i<15000; i++) {
     for (let j = 0; j<30000; j++) {
-        uint2[ij2] = ij2;
+        const is = i << 16;
+        uint2[ij2] = is | j;
+        const gr = uint2[ij2];
+        const gr2 = gr & 0x0000FFFF;
+        const isd = gr >> 16;
         ij2++;
     }
 }
 const t16 = new Date();
 console.log(t16.valueOf() - t15.valueOf());
+
+
+const is = 25633 << 16;
+const comp = is | 15265;
+
+const gr2 = comp & 0x0000FFFF;
+const isd = comp >> 16;
+console.log(gr2);
+console.log(isd);
 
 
 //Math.pow(i, 2);
