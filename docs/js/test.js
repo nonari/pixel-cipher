@@ -31,9 +31,8 @@ class Point {
 
 const t1 = new Date();
 const lp = [];
-for (let i = 0; i<10000000; i++) {
-    const s = new Point(1,2);
-    lp.push(s);
+for (let i = 0; i<100000000; i++) {
+    const s = [1,1];
 }
 const t2 = new Date();
 console.log(t2.valueOf() - t1.valueOf());
@@ -42,8 +41,8 @@ console.log(t2.valueOf() - t1.valueOf());
 
 const t3 = new Date();
 const l = [];
-for (let i = 0; i<10000000; i++) {
-    l.push(i);
+for (let i = 0; i<100000000; i++) {
+    const s = new Point(1,1);
 }
 const t4 = new Date();
 console.log(t4.valueOf() - t3.valueOf());
