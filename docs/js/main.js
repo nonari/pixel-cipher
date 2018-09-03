@@ -122,7 +122,7 @@ function encrypt(data, reverse) {
     if (global.mode === 1) {
         evenEncryption(data, reverse);
     } else {
-        scatter(data, reverse);
+        tilted2(data, reverse);
     }
 }
 
@@ -200,10 +200,21 @@ class Point {
         return (yInt * width + xInt) * ifDefOr(steps, 1);
     }
 
+    static calcLinealIntValueS(x, y, width, steps) {
+        const xInt = Math.trunc(x);
+        const yInt = Math.trunc(y);
+        return (yInt * width + xInt) * ifDefOr(steps, 1);
+    }
+
+
     static calcPointOf(value, width) {
         const y = Math.trunc(value / width);
         const x = value % width;
         return new Point(x, y);
+    }
+
+    static zipToUInt32(x, y) {
+        return (x << 16) | y;
     }
 
     toString(displayAsInt) {
@@ -395,7 +406,34 @@ function Segment(line, canvas) {
         }
     }
 
-    function calculateFirstPoint() {
+    this.nextL = (prevPoint) => {
+        let currentY = Math.trunc(prevPoint / canvas.width);
+        let currentX = prevPoint % canvas.width;
+        while(true) {
+            let nextX;
+            let nextY;
+            if (line.slope === Number.POSITIVE_INFINITY) {
+                nextY = currentY + 1;
+                nextX = currentX;
+            } else if (line.slope === 0) {
+                nextX = currentX + 1;
+                nextY = currentY;
+            } else {
+                nextX = currentX + xSpread;
+                nextY = currentY + ySpread;
+            }
+
+            if (nextX > canvas.width || nextY > canvas.height) {
+                return null
+            } else if (Math.trunc(nextX) !== Math.trunc(currentX) || Math.trunc(nextY) !== Math.trunc(currentY)) {
+                return Math.trunc(nextX) + Math.trunc(nextY) * canvas.width;
+            }
+            currentX = nextX;
+            currentY = nextY;
+        }
+    };
+
+    this.calculateFirstPoint = () => {
         if (line.slope === Number.POSITIVE_INFINITY) {
             return new Point(line.point1.x, 0);
         } else if (line.slope === 0) {
@@ -404,10 +442,21 @@ function Segment(line, canvas) {
             init();
             return new Point(xDelta, line.evaluate(xDelta));
         }
-    }
+    };
+
+    this.calculateFirstPointC = () => {
+        if (line.slope === Number.POSITIVE_INFINITY) {
+            return line.point1.x;
+        } else if (line.slope === 0) {
+            return line.point1.y * canvas.width;
+        } else {
+            init();
+            return Math.trunc(xDelta + line.evaluate(xDelta) * canvas.width);
+        }
+    };
 
     this.forEach = (cb) => {
-        const firstPoint = calculateFirstPoint();
+        const firstPoint = this.calculateFirstPoint();
         cb(firstPoint);
 
         let currentPoint = next(firstPoint);
@@ -416,7 +465,7 @@ function Segment(line, canvas) {
 
             currentPoint = next(currentPoint);
         }
-    }
+    };
 }
 
 function Canvas(slope, width, height) {
@@ -530,7 +579,7 @@ function HenonMap(xMax, yMax, a, b) {
     this.reverse = (n) => {
         sequenceForReversal = [];
         for (let i = 0; i < n; i++) {
-            sequenceForReversal.push(calculateNext());
+            sequenceForReversal.push(calculateNextL());
         }
     };
 
@@ -551,6 +600,23 @@ function HenonMap(xMax, yMax, a, b) {
         }
     }
 
+    function calculateNextL() {
+        const x = 1 - 1.4 * x0 * x0 + y0;
+        const y = 0.3 * x0;
+
+        x0 = round(x, 14);
+        y0 = round(y, 14);
+
+        const xr = Number.parseInt(x.toString().slice(4,9));
+        const yr = Number.parseInt(y.toString().slice(4,9));
+
+        if (bounded) {
+            return xr % xMax + (yr % yMax) * xMax;
+        } else {
+            return xr ^ yr;
+        }
+    }
+
     this.next = () => {
         if (sequenceForReversal !== null) {
             if (sequenceForReversal.length > 0) {
@@ -559,7 +625,7 @@ function HenonMap(xMax, yMax, a, b) {
                 return null;
             }
         } else {
-            return calculateNext();
+            return calculateNextL();
         }
     };
 }
@@ -665,6 +731,61 @@ function tiltedScatteringRev(data, points, reverse) {
         }
         switchPositions(data, pointToSwitchPosition, points[newPosition].calcLinealIntValue(image.width));
     }
+}
+
+function tilted2(data, reverse) {
+    const slope = slopeFromDegrees(45);
+
+    const canvas = new Canvas(slope, image.width, image.height);
+
+    const lines = canvas.getLines();
+
+    const points = new Uint32Array(image.width * image.height);
+    let i = 0;
+    lines.forEach((oline) => {
+        const s = new Segment(oline, canvas);
+        let currentPointC = s.calculateFirstPointC();
+        while (currentPointC !== null) {
+            points[i] = currentPointC;
+            currentPointC = s.nextL(currentPointC);
+            i++;
+        }
+    });
+
+    const generator = new HenonMap(image.width, image.height);
+    const pointsInCanvas = points.length;
+
+    if (reverse) {
+        generator.reverse(pointsInCanvas);
+    }
+
+    const distance = 200;
+
+    doFor(points.length, reverse, (i) => {scatterPoint(data, points, generator, distance, i)});
+}
+
+function scatterPoint(data, points, generator, distance, i) {
+    const pointToSwitchPosition = points[i];
+    const rndPoint = generator.next();
+    const randomOffset = rndPoint % distance;
+    const sign = rndPoint % 2 === 0 ? 1 : -1;
+
+    let newPosition;
+    if (sign > 0) {
+        newPosition = i + randomOffset;
+        const offsetExcess = points.length - 1 - newPosition;
+        if (offsetExcess < 0) {
+            newPosition = i - (distance + offsetExcess);
+        }
+    } else {
+        newPosition = i - randomOffset;
+        if (newPosition < 0) {
+            newPosition = i + (distance - newPosition);
+        }
+    }
+    const newPoint = points[newPosition];
+
+    switchPositions(data, pointToSwitchPosition, newPoint);
 }
 
 function switchPositions(data, i, j) {

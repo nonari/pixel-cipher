@@ -73,6 +73,23 @@ for (let i = 0; i<100000000; i++) {
 const t10 = new Date();
 console.log(t10.valueOf() - t9.valueOf());
 
+const t17 = new Date();
+for (let i = 0; i<1000000000; i++) {
+    const h = 24 >> 1;
+}
+const t18 = new Date();
+console.log(t18.valueOf() - t17.valueOf());
+
+const t19 = new Date();
+const p1 = new Point(1,2);
+for (let i = 0; i<1000000000; i++) {
+    const h  = p1.x*p1.y;
+}
+const t20 = new Date();
+console.log("div:");
+console.log(t20.valueOf() - t19.valueOf());
+
+
 //const u = 12678;
 //const l = 23145;
 const t11 = new Date();
