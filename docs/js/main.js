@@ -75,7 +75,7 @@ function processImg(reverse) {
     ctx_out.putImageData(data, 0, 0);
 }
 
-const global = this;
+const global = {};
 global.mode = 1;
 function scatteringMode(mode) {
     global.mode = mode;
@@ -177,17 +177,17 @@ class Point {
     };
 
     sameCell(point) {
-        return (Math.trunc(this.x) === Math.trunc(point.x)) && (Math.trunc(this.y) === Math.trunc(point.y));
+        return (trunc(this.x) === trunc(point.x)) && (trunc(this.y) === trunc(point.y));
     }
 
     calcLinealIntValue(width, steps) {
-        const xInt = Math.trunc(this.x);
-        const yInt = Math.trunc(this.y);
+        const xInt = trunc(this.x);
+        const yInt = trunc(this.y);
         return (yInt * width + xInt) * ifDefOr(steps, 1);
     }
 
     static calcPointOf(value, width) {
-        const y = Math.trunc(value / width);
+        const y = trunc(value / width);
         const x = value % width;
         return new Point(x, y);
     }
@@ -198,7 +198,7 @@ class Point {
 
     toString(displayAsInt) {
         if (ifDefOr(displayAsInt, false)) {
-            return '{x: ' + Math.trunc(this.x) + ',y: ' + Math.trunc(this.y) + '}'
+            return '{x: ' + trunc(this.x) + ',y: ' + trunc(this.y) + '}'
         } else {
             return '{x: ' + this.x + ',y: ' + this.y + '}'
         }
@@ -237,7 +237,7 @@ class Line {
         return ((this.point2.x - this.point1.x) * (point.y - this.point1.y) - (this.point2.y - this.point1.y) * (point.x - this.point1.x)) > 0;
     }
 
-    contains(testPoint)  {
+    contains(x, y)  {
         return round((this.point1.y - testPoint.y), 14) === round(((this.point1.x - testPoint.x) * this.slope), 14);
     };
 
@@ -298,8 +298,6 @@ function Segment(line, canvas) {
 
         return hypotenuse;
     }
-
-    this.getHypotenuse = getHypotenuse;
 
     function calculateXMaxLength() {
         if (Math.abs(line.slope) < 1) {
@@ -462,7 +460,7 @@ function Canvas(slope, width, height) {
             return byLeftSide();
         } else if (slope > 0) {
             if (slope > 1) {
-                const leftLines = byLeftSide(slope);
+                const leftLines = byLeftSide(slope + 0.001);
                 leftLines.reverse();
                 leftLines.pop();
                 return leftLines.concat(byBottomSide());
@@ -470,7 +468,7 @@ function Canvas(slope, width, height) {
                 const leftLines = byLeftSide();
                 leftLines.reverse();
                 leftLines.pop();
-                return leftLines.concat(byBottomSide(invertedSlope));
+                return leftLines.concat(byBottomSide(invertedSlope + 0.001));
             }
         } else {
             const leftLines = byLeftSide();
@@ -507,6 +505,10 @@ function Canvas(slope, width, height) {
     }
 }
 
+function trunc(number) {
+    return Math.trunc(number);
+}
+
 function round(number, decimals) {
     return parseFloat(number.toFixed(decimals));
 }
@@ -539,7 +541,7 @@ function HenonMap(xMax, yMax, a, b) {
         if (bounded) {
             return xr % xMax + (yr % yMax) * xMax;
         } else {
-            return xr ^ yr;
+            return xr * yr;
         }
     }
 
@@ -596,14 +598,14 @@ function tiltedScattering(data, reverse) {
     const canvas = new Canvas(slope, image.width, image.height);
 
     const lines = canvas.getLines();
-    const points = new Uint32Array(image.width * image.height);
+    const points = new Uint32Array();
     let i = 0;
     lines.forEach((oline) => {
+        console.log(oline.point1.toString());
         const s = new Segment(oline, canvas);
         let currentPointC = s.calculateFirstPoint();
 
         while (currentPointC !== null) {
-            console.log(currentPointC.toString());
             points[i] = currentPointC.calcLinealIntValue(image.width);
             currentPointC = s.next(currentPointC);
             i++;
