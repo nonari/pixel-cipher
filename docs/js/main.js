@@ -186,6 +186,12 @@ class Point {
         return (yInt * width + xInt) * ifDefOr(steps, 1);
     }
 
+    static calcLinealIntValueOf(x, y, width) {
+        const xInt = trunc(x);
+        const yInt = trunc(y);
+        return yInt * width + xInt;
+    }
+
     static calcPointOf(value, width) {
         const y = trunc(value / width);
         const x = value % width;
@@ -238,7 +244,7 @@ class Line {
     }
 
     contains(x, y)  {
-        return round((this.point1.y - testPoint.y), 14) === round(((this.point1.x - testPoint.x) * this.slope), 14);
+        return trunc(this.evaluate(x + 0.000001)) === y || trunc(this.evaluate(x + 0.999999)) === y ;
     };
 
     evaluate(x) {
@@ -265,7 +271,7 @@ class Line {
         if (this.slope === 0) {
             throw new Error('Can\'t calculate x because slope is zero');
         } else if (this.slope === Number.POSITIVE_INFINITY) {
-            return line.point1.x;
+            return this.point1.x;
         } else {
             return ((this.point1.x * this.slope) + y - this.point1.y) / this.slope;
         }
@@ -283,6 +289,10 @@ function Segment(line, canvas) {
     let hypotenuse = null;
     let xSpread = null;
     let ySpread = null;
+
+    let currentX = null;
+    let currentY = null;
+    let adjacentLine = null;
 
     function getHypotenuse() {
         if (line.slope === Number.POSITIVE_INFINITY) {
@@ -360,51 +370,51 @@ function Segment(line, canvas) {
         }
     };
 
-    this.next = (prevPoint) => {
-        let currentPoint = prevPoint;
+    this.next = () => {
         while(true) {
-            let nextP;
+            let nextX;
+            let nextY;
             if (line.slope === Number.POSITIVE_INFINITY) {
-                nextP = new Point(currentPoint.x, currentPoint.y + 1);
+                nextY = currentY + 1;
             } else if (line.slope === 0) {
-                nextP = new Point(currentPoint.x + 1, currentPoint.y);
+                nextX = currentX + 1;
             } else {
-                const xNext = currentPoint.x + xSpread;
-                const yNext = currentPoint.y + ySpread;
-                nextP = new Point(xNext, yNext);
+                const nextX = currentX + xSpread;
+                const nextY = currentY + ySpread;
             }
 
-            if (nextP.x > canvas.width || nextP.y > canvas.height) {
+            currentX = nextX;
+            currentY = nextY;
+            if (nextX > canvas.width || nextY > canvas.height) {
                 return null
-            } else if (!nextP.sameCell(currentPoint)) {
-                return nextP;
+            } else if ((trunc(nextX) !== trunc(currentX) || trunc(nextY) !== trunc(currentY))
+                    && adjacentLine.contains(trunc(nextX), trunc(nextY))) {
+                currentX = nextX;
+                currentY = nextY;
+                return Point.calcLinealIntValueOf(nextX, nextY, canvas.width);
             }
-            currentPoint = nextP;
+            currentX = nextX;
+            currentY = nextY;
         }
     };
 
-    this.calculateFirstPoint = () => {
+    this.initPointIterator = (adjacent) => {
+        adjacentLine = adjacent;
         if (line.slope === Number.POSITIVE_INFINITY) {
-            return new Point(line.point1.x, 0);
+            currentX = line.point1.x;
+            currentY = 0;
         } else if (line.slope === 0) {
-            return new Point(0, line.point1.y);
+            currentX = 0;
+            currentY = line.point1.y;
         } else {
             init();
-            return new Point(xDelta, line.evaluate(xDelta));
+            currentX = xDelta;
+            currentY = line.evaluate(xDelta);
         }
+
+        return Point.calcLinealIntValueOf(currentX, currentY, canvas.width);
     };
 
-    this.forEach = (cb) => {
-        const firstPoint = this.calculateFirstPoint();
-        cb(firstPoint);
-
-        let currentPoint = next(firstPoint);
-        while (currentPoint !== null) {
-            cb(currentPoint);
-
-            currentPoint = next(currentPoint);
-        }
-    };
 }
 
 function Canvas(slope, width, height) {
@@ -592,25 +602,31 @@ function shuffleNext(data, generator, pos) {
     switchPositions(data, rndPoint % (data.length / 4), pos);
 }
 
+function extractPoints(canvas) {
+    const lines = canvas.getLines();
+    const points = new Uint32Array();
+    let i = 0;
+    let lastLine = null;
+    for (const line of lines) {
+        console.log(line.point1.toString());
+        const s = new Segment(line, canvas);
+        let currentPoint = s.initPointIterator();
+
+        while (currentPoint !== null) {
+            points[i] = currentPoint.calcLinealIntValue(image.width);
+            currentPoint = s.next(currentPoint);
+            i++;
+        }
+    }
+    return points;
+}
+
 function tiltedScattering(data, reverse) {
     const slope = slopeFromDegrees(getAngle());
 
     const canvas = new Canvas(slope, image.width, image.height);
 
-    const lines = canvas.getLines();
-    const points = new Uint32Array();
-    let i = 0;
-    lines.forEach((oline) => {
-        console.log(oline.point1.toString());
-        const s = new Segment(oline, canvas);
-        let currentPointC = s.calculateFirstPoint();
-
-        while (currentPointC !== null) {
-            points[i] = currentPointC.calcLinealIntValue(image.width);
-            currentPointC = s.next(currentPointC);
-            i++;
-        }
-    });
+    const points = extractPoints(canvas);
 
     const generator = new HenonMap(image.width, image.height);
     const pointsInCanvas = points.length;
