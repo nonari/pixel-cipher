@@ -255,7 +255,7 @@ class Line {
         if (trunc(upperBound) === y) {
             return new Point(xUpperLimit, upperBound);
         } else if (trunc(lowerBound) === y) {
-            return Point(xLowerLimit, lowerBound);
+            return new Point(xLowerLimit, lowerBound);
         } else {
             return null;
         }
@@ -399,13 +399,17 @@ function Segment(line, canvas) {
                 nextX = currentX + xSpread;
                 nextY = currentY + ySpread;
 
-                const xDiff = trunc(currentX) - trunc(nextX);
-                const yDiff = trunc(currentY) - trunc(currentY);
+                const xDiff = trunc(nextX) - trunc(currentX);
+                const yDiff = trunc(nextY) - trunc(currentY);
                 if (Math.abs(xDiff) > 0 && Math.abs(yDiff) > 0) {
                     if (line.contains(trunc(nextX) - xDiff, trunc(nextY))) {
-                        line.calcPointIn();
+                        const interPoint = line.calcPointIn(trunc(nextX) - xDiff, trunc(nextY));
+                        nextX = interPoint.x;
+                        nextY = interPoint.y;
                     } else if (line.contains(trunc(nextX), trunc(nextY) - yDiff)) {
-
+                        const interPoint = line.calcPointIn(trunc(nextX), trunc(nextY) - yDiff);
+                        nextX = interPoint.x;
+                        nextY = interPoint.y;
                     }
                 }
             }
@@ -413,7 +417,7 @@ function Segment(line, canvas) {
             if (nextX > canvas.width || nextY > canvas.height) {
                 return null
             } else if (!sameCell(currentX, currentY, nextX, nextY)
-                /*&& (adjacentLine === null || !adjacentLine.contains(trunc(nextX), trunc(nextY)))*/) {
+                && (adjacentLine === null || !adjacentLine.contains(trunc(nextX), trunc(nextY)))) {
                 currentX = nextX;
                 currentY = nextY;
                 return Point.calcLinealIntValueOf(nextX, nextY, canvas.width);
@@ -424,7 +428,7 @@ function Segment(line, canvas) {
     };
 
     function sameCell(x1, y1, x2, y2) {
-        return (trunc(x1) === trunc(x2) && trunc(y1) === trunc(y2));
+        return (trunc(x1) === trunc(x2)) && (trunc(y1) === trunc(y2));
     }
 
     this.initPointIterator = (adjacent) => {
@@ -637,10 +641,12 @@ function extractPoints(canvas) {
     let i = 0;
     let lastLine = null;
     for (const line of lines) {
+        console.log(line);
         const segment = new Segment(line, canvas);
 
         let currentPoint = segment.initPointIterator(lastLine);
         while (currentPoint !== null) {
+            console.log(currentPoint);
             points[i] = currentPoint;
             currentPoint = segment.next(currentPoint);
             i++;
