@@ -120,9 +120,7 @@ function clear() {
 function clear_img(anchor) {
     const ctx_in = getContext(anchor);
     const data = ctx_in.getImageData(0, 0, image.width, image.height);
-    for(let i = 0; i < data.data.length; i+=4) {
-        data.data[i+3] = 0;
-    }
+    data.data = new Uint8ClampedArray(image.width * image.height);
     ctx_in.putImageData(data, 0, 0);
 }
 
@@ -160,8 +158,8 @@ function calculatePoint(point, slope, distance) {
 }
 
 function calculateSlope(point1, point2) {
-    const xDelta = Math.abs(point1.x - point2.x);
-    const yDelta = Math.abs(point1.y - point2.y);
+    const xDelta = abs(point1.x - point2.x);
+    const yDelta = abs(point1.y - point2.y);
 
     if (xDelta === 0) {
         return Number.POSITIVE_INFINITY;
@@ -244,22 +242,42 @@ class Line {
     }
 
     contains(x, y)  {
-        return trunc(this.evaluate(x + 0.000001)) === y || trunc(this.evaluate(x + 0.999999)) === y ;
-    };
-
-    calcPointIn(x, y)  {
-        const xUpperLimit = x + 0.999999;
-        const xLowerLimit = x + 0.000001;
-        const upperBound = this.evaluate(xLowerLimit);
-        const lowerBound = this.evaluate(xUpperLimit);
-        if (trunc(upperBound) === y) {
-            return new Point(xUpperLimit, upperBound);
-        } else if (trunc(lowerBound) === y) {
-            return new Point(xLowerLimit, lowerBound);
+        if (abs(this.slope) > 1) {
+            const xLower = trunc(this.revEvaluate(y + 0.000000001));
+            const xUpper = trunc(this.revEvaluate(y + 0.999999999));
+            return (xLower === x || xUpper === x);
         } else {
-            return null;
+            const yLower = trunc(this.evaluate(x + 0.000000001));
+            const yUpper = trunc(this.evaluate(x + 0.999999999));
+            return (yLower === y || yUpper === y);
         }
-    };
+    }
+
+    calcPointIn(x, y) {
+        if (abs(this.slope) > 1) {
+            const xUpperLimit = x + 0.999999;
+            const xLowerLimit = x + 0.000001;
+            const lowerBound = this.evaluate(xLowerLimit);
+            const upperBound = this.evaluate(xUpperLimit);
+            if (trunc(upperBound) === y) {
+                return new Point(xUpperLimit, upperBound);
+            } else if (trunc(lowerBound) === y) {
+                return new Point(xLowerLimit, lowerBound);
+            }
+        } else {
+            const yUpperLimit = y + 0.999999;
+            const yLowerLimit = y + 0.000001;
+            const lowerBound = this.revEvaluate(yLowerLimit);
+            const upperBound = this.revEvaluate(yUpperLimit);
+            if (trunc(upperBound) === y) {
+                return new Point(yUpperLimit, upperBound);
+            } else if (trunc(lowerBound) === y) {
+                return new Point(yLowerLimit, lowerBound);
+            }
+        }
+
+        return null;
+    }
 
     evaluate(x) {
         if (this.slope === 0) {
@@ -293,7 +311,7 @@ class Line {
 
     linearDistanceFrom(point) {
         const x = this.revEvaluate(point.y);
-        return Math.abs(x - point.x);
+        return abs(x - point.x);
     }
 
 }
@@ -325,7 +343,7 @@ function Segment(line, canvas) {
     }
 
     function calculateXMaxLength() {
-        if (Math.abs(line.slope) < 1) {
+        if (abs(line.slope) < 1) {
             return canvas.width;
         } else {
             return canvas.height / line.slope;
@@ -401,7 +419,7 @@ function Segment(line, canvas) {
 
                 const xDiff = trunc(nextX) - trunc(currentX);
                 const yDiff = trunc(nextY) - trunc(currentY);
-                if (Math.abs(xDiff) > 0 && Math.abs(yDiff) > 0) {
+                if (abs(xDiff) > 0 && abs(yDiff) > 0) {
                     if (line.contains(trunc(nextX) - xDiff, trunc(nextY))) {
                         const interPoint = line.calcPointIn(trunc(nextX) - xDiff, trunc(nextY));
                         nextX = interPoint.x;
@@ -552,6 +570,10 @@ function trunc(number) {
     return Math.trunc(number);
 }
 
+function abs(number) {
+    return Math.abs(number);
+}
+
 function round(number, decimals) {
     return parseFloat(number.toFixed(decimals));
 }
@@ -641,12 +663,10 @@ function extractPoints(canvas) {
     let i = 0;
     let lastLine = null;
     for (const line of lines) {
-        console.log(line);
         const segment = new Segment(line, canvas);
 
         let currentPoint = segment.initPointIterator(lastLine);
         while (currentPoint !== null) {
-            console.log(currentPoint);
             points[i] = currentPoint;
             currentPoint = segment.next(currentPoint);
             i++;
