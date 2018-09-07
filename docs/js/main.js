@@ -243,36 +243,36 @@ class Line {
 
     contains(x, y)  {
         if (abs(this.slope) > 1) {
-            const xLower = trunc(this.revEvaluate(y + 0.000000001));
-            const xUpper = trunc(this.revEvaluate(y + 0.999999999));
+            const xLower = trunc(this.revEvaluate(y + 0.00000001));
+            const xUpper = trunc(this.revEvaluate(y + 0.99999999));
             return (xLower === x || xUpper === x);
         } else {
-            const yLower = trunc(this.evaluate(x + 0.000000001));
-            const yUpper = trunc(this.evaluate(x + 0.999999999));
+            const yLower = trunc(this.evaluate(x + 0.00000001));
+            const yUpper = trunc(this.evaluate(x + 0.99999999));
             return (yLower === y || yUpper === y);
         }
     }
 
     calcPointIn(x, y) {
-        if (abs(this.slope) > 1) {
-            const xUpperLimit = x + 0.999999;
-            const xLowerLimit = x + 0.000001;
-            const lowerBound = this.evaluate(xLowerLimit);
-            const upperBound = this.evaluate(xUpperLimit);
-            if (trunc(upperBound) === y) {
-                return new Point(xUpperLimit, upperBound);
-            } else if (trunc(lowerBound) === y) {
-                return new Point(xLowerLimit, lowerBound);
+        if (abs(this.slope) < 1) {
+            const xUpperLimit = x + 0.99999999;
+            const xLowerLimit = x + 0.00000001;
+            const yLowerBound = this.evaluate(xLowerLimit);
+            const yUpperBound = this.evaluate(xUpperLimit);
+            if (trunc(yUpperBound) === y) {
+                return new Point(xUpperLimit, yUpperBound);
+            } else if (trunc(yLowerBound) === y) {
+                return new Point(xLowerLimit, yLowerBound);
             }
         } else {
-            const yUpperLimit = y + 0.999999;
-            const yLowerLimit = y + 0.000001;
-            const lowerBound = this.revEvaluate(yLowerLimit);
-            const upperBound = this.revEvaluate(yUpperLimit);
-            if (trunc(upperBound) === y) {
-                return new Point(yUpperLimit, upperBound);
-            } else if (trunc(lowerBound) === y) {
-                return new Point(yLowerLimit, lowerBound);
+            const yUpperLimit = y + 0.99999999;
+            const yLowerLimit = y + 0.00000001;
+            const xLowerBound = this.revEvaluate(yLowerLimit);
+            const xUpperBound = this.revEvaluate(yUpperLimit);
+            if (trunc(xUpperBound) === x) {
+                return new Point(xUpperBound, yUpperLimit);
+            } else if (trunc(xLowerBound) === x) {
+                return new Point(xLowerBound, yLowerLimit);
             }
         }
 
