@@ -1,3 +1,6 @@
+const UP_LIMIT = 0.99999999;
+const LW_LIMIT = 0.00000001;
+
 function callback() {
     document.getElementById('in_file').onchange = function () {
         loadImage();
@@ -243,20 +246,20 @@ class Line {
 
     contains(x, y)  {
         if (abs(this.slope) > 1) {
-            const xLower = trunc(this.revEvaluate(y + 0.00000001));
-            const xUpper = trunc(this.revEvaluate(y + 0.99999999));
+            const xLower = trunc(this.revEvaluate(y + LW_LIMIT));
+            const xUpper = trunc(this.revEvaluate(y + UP_LIMIT));
             return (xLower === x || xUpper === x);
         } else {
-            const yLower = trunc(this.evaluate(x + 0.00000001));
-            const yUpper = trunc(this.evaluate(x + 0.99999999));
+            const yLower = trunc(this.evaluate(x + LW_LIMIT));
+            const yUpper = trunc(this.evaluate(x + UP_LIMIT));
             return (yLower === y || yUpper === y);
         }
     }
 
     calcPointIn(x, y) {
         if (abs(this.slope) < 1) {
-            const xUpperLimit = x + 0.99999999;
-            const xLowerLimit = x + 0.00000001;
+            const xUpperLimit = x + UP_LIMIT;
+            const xLowerLimit = x + LW_LIMIT;
             const yLowerBound = this.evaluate(xLowerLimit);
             const yUpperBound = this.evaluate(xUpperLimit);
             if (trunc(yUpperBound) === y) {
@@ -265,8 +268,8 @@ class Line {
                 return new Point(xLowerLimit, yLowerBound);
             }
         } else {
-            const yUpperLimit = y + 0.99999999;
-            const yLowerLimit = y + 0.00000001;
+            const yUpperLimit = y + UP_LIMIT;
+            const yLowerLimit = y + LW_LIMIT;
             const xLowerBound = this.revEvaluate(yLowerLimit);
             const xUpperBound = this.revEvaluate(yUpperLimit);
             if (trunc(xUpperBound) === x) {
@@ -420,14 +423,16 @@ function Segment(line, canvas) {
                 const xDiff = trunc(nextX) - trunc(currentX);
                 const yDiff = trunc(nextY) - trunc(currentY);
                 if (abs(xDiff) > 0 && abs(yDiff) > 0) {
-                    if (line.contains(trunc(nextX) - xDiff, trunc(nextY))) {
                         const interPoint = line.calcPointIn(trunc(nextX) - xDiff, trunc(nextY));
+                    if (interPoint !== null) {
                         nextX = interPoint.x;
                         nextY = interPoint.y;
-                    } else if (line.contains(trunc(nextX), trunc(nextY) - yDiff)) {
+                    } else {
                         const interPoint = line.calcPointIn(trunc(nextX), trunc(nextY) - yDiff);
-                        nextX = interPoint.x;
-                        nextY = interPoint.y;
+                        if (interPoint !== null) {
+                            nextX = interPoint.x;
+                            nextY = interPoint.y;
+                        }
                     }
                 }
             }
