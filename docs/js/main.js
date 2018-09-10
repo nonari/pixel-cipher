@@ -590,12 +590,14 @@ function HenonMap(xMax, yMax, a, b) {
     const bounded = typeof xMax !== 'undefined' && typeof yMax !== 'undefined';
 
     let sequenceForReversal = null;
+    let pointer = 0;
 
     this.reverse = (n) => {
-        sequenceForReversal = [];
+        sequenceForReversal = new Array(n);
         for (let i = 0; i < n; i++) {
-            sequenceForReversal.push(calculateNext());
+            sequenceForReversal[i] = calculateNext();
         }
+        sequenceForReversal.reverse();
     };
 
     function calculateNext() {
@@ -617,8 +619,8 @@ function HenonMap(xMax, yMax, a, b) {
 
     this.next = () => {
         if (sequenceForReversal !== null) {
-            if (sequenceForReversal.length > 0) {
-                return sequenceForReversal.pop();
+            if (pointer < sequenceForReversal.length) {
+                return sequenceForReversal[pointer ++];
             } else {
                 return null;
             }
@@ -672,9 +674,8 @@ function extractPoints(canvas) {
 
         let currentPoint = segment.initPointIterator(lastLine);
         while (currentPoint !== null) {
-            points[i] = currentPoint;
+            points[i++] = currentPoint;
             currentPoint = segment.next(currentPoint);
-            i++;
         }
         lastLine = line;
     }
@@ -693,10 +694,14 @@ function tiltedScattering(data, reverse) {
 
     if (reverse) {
         generator.reverse(pointsInCanvas);
+        //points.reverse();
     }
 
     const distance = getRange();
 
+    //for (let i = 0; i < points.length; i++) {
+
+    //}
     doFor(points.length, reverse, (i) => {scatterPoint(data, points, generator, distance, i)});
 }
 
