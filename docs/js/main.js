@@ -69,7 +69,9 @@ function getContext(anchor) {
     return ctx;
 }
 
+let t1 = null;
 function processImg(reverse) {
+    t1 = new Date();
     const ctx_in = getContext('in_img');
     const data = ctx_in.getImageData(0, 0, image.width, image.height);
     encrypt(data.data, reverse);
@@ -263,9 +265,9 @@ class Line {
             const yLowerBound = this.evaluate(xLowerLimit);
             const yUpperBound = this.evaluate(xUpperLimit);
             if (trunc(yUpperBound) === y) {
-                return new Point(xUpperLimit, yUpperBound);
+                return {'x': xUpperLimit, 'y': yUpperBound};
             } else if (trunc(yLowerBound) === y) {
-                return new Point(xLowerLimit, yLowerBound);
+                return new {'x': xLowerLimit, 'y': yLowerBound};
             }
         } else {
             const yUpperLimit = y + UP_LIMIT;
@@ -273,9 +275,9 @@ class Line {
             const xLowerBound = this.revEvaluate(yLowerLimit);
             const xUpperBound = this.revEvaluate(yUpperLimit);
             if (trunc(xUpperBound) === x) {
-                return new Point(xUpperBound, yUpperLimit);
+                return {'x': xUpperBound, 'y': yUpperLimit};
             } else if (trunc(xLowerBound) === x) {
-                return new Point(xLowerBound, yLowerLimit);
+                return {'x': xLowerBound, 'y': yLowerLimit};
             }
         }
 
@@ -580,7 +582,13 @@ function abs(number) {
 }
 
 function round(number, decimals) {
-    return parseFloat(number.toFixed(decimals));
+    return Math.trunc(number * (10 ** decimals)) / 10 ** decimals;
+}
+
+function decSlice(number) {
+    const integerPart = Math.trunc(number * 1000);
+    const decimalPart = number * 1000 - integerPart;
+    return Math.trunc(decimalPart * 100000);
 }
 
 function HenonMap(xMax, yMax, a, b) {
@@ -607,8 +615,8 @@ function HenonMap(xMax, yMax, a, b) {
         x0 = round(x, 14);
         y0 = round(y, 14);
 
-        const xr = Number.parseInt(x.toString().slice(4,9));
-        const yr = Number.parseInt(y.toString().slice(4,9));
+        const xr = decSlice(x);
+        const yr = decSlice(y);
 
         if (bounded) {
             return xr % xMax + (yr % yMax) * xMax;
@@ -693,7 +701,9 @@ function tiltedScattering(data, reverse) {
     const pointsInCanvas = points.length;
 
     if (reverse) {
+        const t2= new Date().valueOf();
         generator.reverse(pointsInCanvas);
+        console.log("ss: " + (new Date().valueOf() - t2));
         //points.reverse();
     }
 
@@ -702,7 +712,9 @@ function tiltedScattering(data, reverse) {
     //for (let i = 0; i < points.length; i++) {
 
     //}
+    console.log(new Date().valueOf() - t1.valueOf());
     doFor(points.length, reverse, (i) => {scatterPoint(data, points, generator, distance, i)});
+    console.log(new Date().valueOf() - t1.valueOf());
 }
 
 function scatterPoint(data, points, generator, distance, i) {

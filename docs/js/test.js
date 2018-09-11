@@ -32,16 +32,19 @@ class Point {
 const t1 = new Date();
 const lp = [];
 for (let i = 0; i<100000000; i++) {
-    const s = [1,1];
+    const  number = 1.4325345495344;
+    decimals = 10;
+    const r = Math.trunc(number * (10 ** decimals)) / 10 ** decimals;
 }
 const t2 = new Date();
 console.log(t2.valueOf() - t1.valueOf());
 
 
 
+/*
 const t3 = new Date();
 const l = [];
-for (let i = 0; i<100000000; i++) {
+for (let i = 0; i<10000000; i++) {
     const s = new Point(1,1);
 }
 const t4 = new Date();
@@ -101,7 +104,7 @@ const t12 = new Date();
 console.log(t12.valueOf() - t11.valueOf());
 
 const t13 = new Date();
-const uint = new Uint16Array(900000000);
+const uint = new Uint16Array(90000000);
 let ij = 0;
 for (let i = 0; i<30000; i++) {
     for (let j = 0; j<30000; j++) {
@@ -114,7 +117,7 @@ const t14 = new Date();
 console.log(t14.valueOf() - t13.valueOf());
 
 const t15 = new Date();
-const uint2 = new Uint32Array(900000000);
+const uint2 = new Uint32Array(90000000);
 let ij2 = 0;
 for (let i = 0; i<15000; i++) {
     for (let j = 0; j<30000; j++) {
@@ -137,6 +140,7 @@ const gr2 = comp & 0x0000FFFF;
 const isd = comp >> 16;
 console.log(gr2);
 console.log(isd);
+*/
 
 
 //Math.pow(i, 2);
