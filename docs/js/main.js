@@ -265,7 +265,7 @@ class Line {
             if (trunc(yUpperBound) === y) {
                 return {'x': xUpperLimit, 'y': yUpperBound};
             } else if (trunc(yLowerBound) === y) {
-                return new {'x': xLowerLimit, 'y': yLowerBound};
+                return {'x': xLowerLimit, 'y': yLowerBound};
             }
         } else {
             const yUpperLimit = y + UP_LIMIT;
@@ -337,8 +337,8 @@ function Segment(line, canvas) {
             return canvas.width;
         } else if (hypotenuse === null) {
             const y = line.yOffset(xLength);
-            const xExp = xLength * xLength;
-            const yExp = y * y;
+            const xExp = xLength ** 2;
+            const yExp = y ** 2;
             hypotenuse = Math.sqrt(xExp + yExp);
         }
 
@@ -423,26 +423,27 @@ function Segment(line, canvas) {
                 const xDiff = trunc(nextX) - trunc(currentX);
                 const yDiff = trunc(nextY) - trunc(currentY);
                 if (abs(xDiff) > 0 && abs(yDiff) > 0) {
-                        const interPoint = line.calcPointIn(trunc(nextX) - xDiff, trunc(nextY));
-                    if (interPoint !== null) {
-                        nextX = interPoint.x;
-                        nextY = interPoint.y;
+                        const interPoint1 = line.calcPointIn(trunc(nextX) - xDiff, trunc(nextY));
+                    if (interPoint1 !== null) {
+                        nextX = interPoint1.x;
+                        nextY = interPoint1.y;
                     } else {
-                        const interPoint = line.calcPointIn(trunc(nextX), trunc(nextY) - yDiff);
-                        if (interPoint !== null) {
-                            nextX = interPoint.x;
-                            nextY = interPoint.y;
+                        const interPoint2 = line.calcPointIn(trunc(nextX), trunc(nextY) - yDiff);
+                        if (interPoint2 !== null) {
+                            nextX = interPoint2.x;
+                            nextY = interPoint2.y;
                         }
                     }
                 }
             }
 
-            if (nextX > canvas.width || nextY > canvas.height) {
+            if (nextX > canvas.width || nextY > canvas.height || nextX < 0 || nextY < 0) {
                 return null
             } else if (!sameCell(currentX, currentY, nextX, nextY)
-                && (adjacentLine === null || !adjacentLine.contains(trunc(nextX), trunc(nextY)))) {
+                    && (adjacentLine === null || !adjacentLine.contains(trunc(nextX), trunc(nextY)))) {
                 currentX = nextX;
                 currentY = nextY;
+
                 return Point.calcLinealIntValueOf(nextX, nextY, canvas.width);
             }
             currentX = nextX;
@@ -526,7 +527,7 @@ function Canvas(slope, width, height) {
             return byLeftSide();
         } else if (slope > 0) {
             if (slope > 1) {
-                const leftLines = byLeftSide(slope + 0.001);
+                const leftLines = byLeftSide(slope);
                 leftLines.reverse();
                 leftLines.pop();
                 return leftLines.concat(byBottomSide());
@@ -534,12 +535,18 @@ function Canvas(slope, width, height) {
                 const leftLines = byLeftSide();
                 leftLines.reverse();
                 leftLines.pop();
-                return leftLines.concat(byBottomSide(invertedSlope + 0.001));
+                return leftLines.concat(byBottomSide(invertedSlope));
             }
         } else {
-            const leftLines = byLeftSide();
-            leftLines.pop();
-            return byLeftSide().concat(byUpperSide(invertedSlope));
+            if (abs(slope) > 1) {
+                const leftLines = byLeftSide(abs(slope));
+                leftLines.pop();
+                return byLeftSide().concat(byUpperSide());
+            } else {
+                const leftLines = byLeftSide();
+                leftLines.pop();
+                return byLeftSide().concat(byUpperSide(abs(invertedSlope)));
+            }
         }
     };
 
@@ -679,8 +686,10 @@ function extractPoints(canvas) {
         const segment = new Segment(line, canvas);
 
         let currentPoint = segment.initPointIterator(lastLine);
+        currentPoint = segment.next(currentPoint);
         while (currentPoint !== null) {
             points[i++] = currentPoint;
+
             currentPoint = segment.next(currentPoint);
         }
         lastLine = line;
