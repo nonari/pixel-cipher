@@ -69,9 +69,7 @@ function getContext(anchor) {
     return ctx;
 }
 
-let t1 = null;
 function processImg(reverse) {
-    t1 = new Date();
     const ctx_in = getContext('in_img');
     const data = ctx_in.getImageData(0, 0, image.width, image.height);
     encrypt(data.data, reverse);
@@ -701,9 +699,7 @@ function tiltedScattering(data, reverse) {
     const pointsInCanvas = points.length;
 
     if (reverse) {
-        const t2= new Date().valueOf();
         generator.reverse(pointsInCanvas);
-        console.log("ss: " + (new Date().valueOf() - t2));
         //points.reverse();
     }
 
@@ -712,9 +708,7 @@ function tiltedScattering(data, reverse) {
     //for (let i = 0; i < points.length; i++) {
 
     //}
-    console.log(new Date().valueOf() - t1.valueOf());
     doFor(points.length, reverse, (i) => {scatterPoint(data, points, generator, distance, i)});
-    console.log(new Date().valueOf() - t1.valueOf());
 }
 
 function scatterPoint(data, points, generator, distance, i) {
