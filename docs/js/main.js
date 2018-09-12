@@ -346,7 +346,7 @@ function Segment(line, canvas) {
     }
 
     function calculateXMaxLength() {
-        if (abs(line.slope) < 1) {
+        if (abs(line.slope) < canvas.proportion) {
             return canvas.width;
         } else {
             return canvas.height / line.slope;
