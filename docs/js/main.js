@@ -86,9 +86,11 @@ function scatteringMode(mode) {
     if (mode === 1) {
         document.getElementById('even_btn').setAttribute('disabled', '');
         document.getElementById('tilted_btn').removeAttribute('disabled');
+        //hideSpecificParams();
     } else {
         document.getElementById('tilted_btn').setAttribute('disabled', '');
         document.getElementById('even_btn').removeAttribute('disabled');
+       // showSpecificParams();
     }
 }
 
@@ -114,6 +116,16 @@ function getAngle() {
     return parseInt(document.getElementById('angle_input').value);
 }
 
+function hideSpecificParams() {
+    document.getElementById('angle_input').setAttribute('style', 'display: none');
+    document.getElementById('range_input').setAttribute('style', 'display: none');
+}
+
+function showSpecificParams() {
+    document.getElementById('angle_input').removeAttribute('style');
+    document.getElementById('range_input').removeAttribute('style');
+}
+
 function clear() {
     clear_img('in_img');
     clear_img('out_img');
@@ -123,7 +135,7 @@ function clear() {
 function clear_img(anchor) {
     const ctx_in = getContext(anchor);
     const data = ctx_in.getImageData(0, 0, image.width, image.height);
-    data.data = new Uint8ClampedArray(image.width * image.height);
+    data.data = new Uint8ClampedArray(image.width * image.height).fill(255);
     ctx_in.putImageData(data, 0, 0);
 }
 
