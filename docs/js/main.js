@@ -241,7 +241,8 @@ class Line {
     }
 
     isRightTo(point) {
-        return ((this.point2.x - this.point1.x) * (point.y - this.point1.y) - (this.point2.y - this.point1.y) * (point.x - this.point1.x)) > 0;
+        return ((this.point2.x - this.point1.x) * (point.y - this.point1.y)
+            - (this.point2.y - this.point1.y) * (point.x - this.point1.x)) * (this.slope > 0 ? 1 : -1) > 0;
     }
 
     contains(x, y)  {
@@ -349,7 +350,7 @@ function Segment(line, canvas) {
         if (abs(line.slope) < canvas.proportion) {
             return canvas.width;
         } else {
-            return canvas.height / line.slope;
+            return canvas.height / abs(line.slope);
         }
     }
 
@@ -365,7 +366,7 @@ function Segment(line, canvas) {
                 xLength = xLengthMax;
                 xDelta = 0;
             } else if (zone === 'L') {
-                if (line.slope > canvas.proportion) {
+                if (abs(line.slope) > canvas.proportion) {
                     const distance = line.linearDistanceFrom(canvas.leftDiagonal.point1);
                     xLength = xLengthMax - distance;
                 } else {
@@ -374,7 +375,7 @@ function Segment(line, canvas) {
                 }
                 xDelta = 0;
             } else {
-                if (line.slope > canvas.proportion) {
+                if (abs(line.slope) > canvas.proportion) {
                     const distance = line.linearDistanceFrom(canvas.rightDiagonal.point1);
                     xLength = xLengthMax - distance;
                     xDelta = canvas.width - (xLengthMax - distance);
@@ -383,6 +384,9 @@ function Segment(line, canvas) {
                     xLength = xLengthMax - distance;
                     xDelta = canvas.width - (xLengthMax - distance);
                 }
+            }
+            if (xLength === 0) {
+                xLength = 0.001;
             }
             xSpread = 1 / (getHypotenuse() / xLength);
             ySpread = xSpread * line.slope;
@@ -480,7 +484,7 @@ function Canvas(slope, width, height) {
     this.proportion = height / width;
 
     const invertedSlope = 1 / slope;
-    const invertSides = slope > this.proportion;
+    const invertSides = abs(slope) > this.proportion;
 
     if (slope > 0) {
         this.left_x_edge = 0;
@@ -587,13 +591,13 @@ function abs(number) {
 }
 
 function round(number, decimals) {
-    return Math.trunc(number * (10 ** decimals)) / 10 ** decimals;
+    return trunc(number * (10 ** decimals)) / 10 ** decimals;
 }
 
 function decSlice(number) {
-    const integerPart = Math.trunc(number * 1000);
+    const integerPart = trunc(number * 1000);
     const decimalPart = number * 1000 - integerPart;
-    return Math.trunc(decimalPart * 100000);
+    return trunc(decimalPart * 100000);
 }
 
 function HenonMap(xMax, yMax, a, b) {
