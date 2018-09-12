@@ -2,6 +2,7 @@ const UP_LIMIT = 0.99999999;
 const LW_LIMIT = 0.00000001;
 
 function callback() {
+    hideSpecificParams();
     document.getElementById('in_file').onchange = function () {
         loadImage();
     }
@@ -57,16 +58,15 @@ function drawImage(anchor) {
 }
 
 function getContext(anchor) {
-    if (ctxByAnchor.has(anchor)) {
-        return ctxByAnchor.get(anchor);
+    if (!ctxByAnchor.has(anchor)) {
+        const canvas = document.getElementById(anchor);
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const ctx = canvas.getContext("2d");
+        ctxByAnchor.set(anchor, ctx);
     }
-    const canvas = document.getElementById(anchor);
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const ctx = canvas.getContext("2d");
-    ctxByAnchor.set(anchor, ctx);
 
-    return ctx;
+    return ctxByAnchor.get(anchor);
 }
 
 function processImg(reverse) {
@@ -86,11 +86,11 @@ function scatteringMode(mode) {
     if (mode === 1) {
         document.getElementById('even_btn').setAttribute('disabled', '');
         document.getElementById('tilted_btn').removeAttribute('disabled');
-        //hideSpecificParams();
+        hideSpecificParams();
     } else {
         document.getElementById('tilted_btn').setAttribute('disabled', '');
         document.getElementById('even_btn').removeAttribute('disabled');
-       // showSpecificParams();
+        showSpecificParams();
     }
 }
 
@@ -117,27 +117,23 @@ function getAngle() {
 }
 
 function hideSpecificParams() {
-    document.getElementById('angle_input').setAttribute('style', 'display: none');
-    document.getElementById('range_input').setAttribute('style', 'display: none');
+    document.getElementById('angle_div').setAttribute('style', 'display: none');
+    document.getElementById('range_div').setAttribute('style', 'display: none');
 }
 
 function showSpecificParams() {
-    document.getElementById('angle_input').removeAttribute('style');
-    document.getElementById('range_input').removeAttribute('style');
+    document.getElementById('angle_div').removeAttribute('style');
+    document.getElementById('range_div').removeAttribute('style');
 }
 
-function clear() {
-    clear_img('in_img');
-    clear_img('out_img');
-    disableOperationButtons();
+function clearImg() {
+    const ctx_in = getContext('in_img');
+    const ctx_out = getContext('out_img');
+    const data_out = ctx_out.getImageData(0, 0, image.width, image.height);
+    ctx_in.putImageData(data_out, 0, 0);
+    //disableOperationButtons();
 }
 
-function clear_img(anchor) {
-    const ctx_in = getContext(anchor);
-    const data = ctx_in.getImageData(0, 0, image.width, image.height);
-    data.data = new Uint8ClampedArray(image.width * image.height).fill(255);
-    ctx_in.putImageData(data, 0, 0);
-}
 
 function encrypt(data, reverse) {
     if (global.mode === 1) {
@@ -636,8 +632,8 @@ function HenonMap(xMax, yMax, a, b) {
         x0 = round(x, 14);
         y0 = round(y, 14);
 
-        const xr = decSlice(x);
-        const yr = decSlice(y);
+        const xr = abs(decSlice(x));
+        const yr = abs(decSlice(y));
 
         if (bounded) {
             return xr % xMax + (yr % yMax) * xMax;
@@ -660,13 +656,12 @@ function HenonMap(xMax, yMax, a, b) {
 }
 
 function evenEncryption(data, reverse) {
-    const generator = new HenonMap(image.width, image.height);
+    const generator = new HenonMap();
     if (reverse) {
         generator.reverse(image.width * image.height);
-        shuffle2(data, generator, reverse)
-    } else {
-        shuffle2(data, generator, reverse);
     }
+
+    shuffle2(data, generator, reverse);
 }
 
 function shuffle2(data, generator, reverse) {

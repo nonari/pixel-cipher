@@ -33,15 +33,13 @@ const t1 = new Date();
 const lp = [];
 for (let i = 0; i<100000000; i++) {
     const  number = 1.4325345495344;
-    decimals = 10;
+    const decimals = 10;
     const r = Math.trunc(number * (10 ** decimals)) / 10 ** decimals;
 }
 const t2 = new Date();
 console.log(t2.valueOf() - t1.valueOf());
 
 
-
-/*
 const t3 = new Date();
 const l = [];
 for (let i = 0; i<10000000; i++) {
@@ -140,7 +138,7 @@ const gr2 = comp & 0x0000FFFF;
 const isd = comp >> 16;
 console.log(gr2);
 console.log(isd);
-*/
+
 
 
 //Math.pow(i, 2);

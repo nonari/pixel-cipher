@@ -16,7 +16,7 @@
         <div id="cnt_btns">
             <button disabled id="btn_dec" class="operation_btn" onclick="processImg(false)">DECRYPT</button>
             <button disabled id="btn_enc" class="operation_btn" onclick="processImg(true)">ENCRYPT</button>
-            <button disabled id="btn_clr" class="operation_btn" onclick="clear()">CLEAR</button>
+            <button disabled id="btn_clr" class="operation_btn" onclick="clearImg()">SWITCH</button>
         </div>
         <div id="cnt_im">
             <div id="cnt_im_pre"><canvas id="in_img"></canvas></div>
@@ -29,26 +29,32 @@
                     </div>
                 </div>
                 <div>
-                    <div>
+                    <div id="angle_div">
                         <label for="angle_input">Angle:</label>
                         <input type="number" value="45" id="angle_input"/>
                     </div>
-                    <div>
+                    <div id="range_div">
                         <label for="range_input">Range:</label>
                         <input type="number" value="200" id="range_input"/>
                     </div>
-                    <div>
-                        <label for="a_input">A:</label>
-                        <input type="number" value="1" id="a_input"/>
-                        <label for="b_input">B:</label>
-                        <input type="number" value="1.0001" id="b_input"/>
+                    <div id="key_values">
+                        <div>
+                            <label for="a_input">A:</label>
+                            <input value="1" id="a_input"/>
+                        </div>
+                        <div>
+                            <label for="b_input">B:</label>
+                            <input value="1.0001" id="b_input"/>
+                        </div>
                     </div>
                 </div>
                 <div>
                     <button id="debug_btn">DEBUG</button>
                 </div>
             </div>
-            <div id="cnt_im_post"><canvas id="out_img"></canvas></div>
+            <div id="cnt_im_post">
+                <canvas id="out_img"></canvas>
+            </div>
         </div>
         <script src="js/main.js"></script>
     </body>
