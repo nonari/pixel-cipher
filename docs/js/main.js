@@ -3,6 +3,8 @@ const LW_LIMIT = 0.00000001;
 
 function callback() {
     hideSpecificParams();
+    processParams();
+
     document.getElementById('in_file').onchange = function () {
         loadImage();
     }
@@ -94,6 +96,31 @@ function scatteringMode(mode) {
     }
 }
 
+function processParams() {
+    const url = new URL(window.location.href);
+
+    const mode = url.searchParams.get('m');
+    switch (mode) {
+        case 'e': {scatteringMode(1); break}
+        case 't': {scatteringMode(2); break}
+    }
+
+    const angle = url.searchParams.get('a');
+    if (angle !== null) {
+        setAngle(parseInt(angle));
+    }
+
+    const range = url.searchParams.get('r');
+    if (range !== null) {
+        setRange(parseInt(range));
+    }
+
+    const a = url.searchParams.get('an');
+    const b = url.searchParams.get('bn');
+    setSeedValues(a,b);
+
+}
+
 function enableOperationButtons() {
     const buttons = document.getElementsByClassName('operation_btn');
     for (const button of buttons) {
@@ -106,6 +133,25 @@ function disableOperationButtons() {
     for (const button of buttons) {
         button.setAttribute('disabled', '');
     }
+}
+
+function setSeedValues(a, b) {
+    document.getElementById('a_input').value = a !== null ? parseFloat(a) : 1;
+    document.getElementById('b_input').value = b !== null ? parseFloat(b) : 1.0001;
+}
+
+function getSeedValues() {
+    const a = parseFloat(document.getElementById('a_input').value);
+    const b = parseFloat(document.getElementById('b_input').value);
+    return {'a': a, 'b': b};
+}
+
+function setRange(range) {
+    document.getElementById('range_input').value = range;
+}
+
+function setAngle(angle) {
+    document.getElementById('angle_input').value = angle;
 }
 
 function getRange() {
@@ -610,7 +656,7 @@ function decSlice(number) {
 
 function HenonMap(xMax, yMax, a, b) {
     let y0 = typeof a !== 'undefined' ? a + 0.0000001 : 1;
-    let x0 = typeof b !== 'undefined' ? b + 0.0000001 : 1.0000001;
+    let x0 = typeof b !== 'undefined' ? b + 0.0000001 : 1.0001;
 
     const bounded = typeof xMax !== 'undefined' && typeof yMax !== 'undefined';
 
@@ -656,7 +702,8 @@ function HenonMap(xMax, yMax, a, b) {
 }
 
 function evenEncryption(data, reverse) {
-    const generator = new HenonMap();
+    const seeds = getSeedValues();
+    const generator = new HenonMap(undefined, undefined, seeds.a, seeds.b);
     if (reverse) {
         generator.reverse(image.width * image.height);
     }
@@ -715,7 +762,8 @@ function tiltedScattering(data, reverse) {
 
     const points = extractPoints(canvas);
 
-    const generator = new HenonMap(image.width, image.height);
+    const seeds = getSeedValues();
+    const generator = new HenonMap(image.width, image.height, seeds.a, seeds.b);
     const pointsInCanvas = points.length;
 
     if (reverse) {
