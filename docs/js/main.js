@@ -1,6 +1,8 @@
 const UP_LIMIT = 0.99999999;
 const LW_LIMIT = 0.00000001;
 
+const voidImage = new ImageData(new Uint8ClampedArray(25 * 10**6 * 4), 5000, 5000);
+
 function callback() {
     hideSpecificParams();
     processParams();
@@ -172,12 +174,20 @@ function showSpecificParams() {
     document.getElementById('range_div').removeAttribute('style');
 }
 
-function clearImg() {
+function copyImage() {
     const ctx_in = getContext('in_img');
     const ctx_out = getContext('out_img');
     const data_out = ctx_out.getImageData(0, 0, image.width, image.height);
     ctx_in.putImageData(data_out, 0, 0);
-    //disableOperationButtons();
+    ctx_out.putImageData(voidImage, 0, 0);
+}
+
+function clearImage() {
+    const ctx_in = getContext('in_img');
+    const ctx_out = getContext('out_img');
+    ctx_in.putImageData(voidImage, 0, 0);
+    ctx_out.putImageData(voidImage, 0, 0);
+    disableOperationButtons();
 }
 
 
