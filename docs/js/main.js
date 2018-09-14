@@ -1,5 +1,6 @@
 const UP_LIMIT = 0.99999999;
 const LW_LIMIT = 0.00000001;
+const DEBUG = true;
 
 const voidImage = new ImageData(new Uint8ClampedArray(25 * 10**6 * 4), 5000, 5000);
 
@@ -73,9 +74,11 @@ function getContext(anchor) {
     return ctxByAnchor.get(anchor);
 }
 
+let imageD;
 function processImg(reverse) {
     const ctx_in = getContext('in_img');
     const data = ctx_in.getImageData(0, 0, image.width, image.height);
+    imageD = data;
     encrypt(data.data, reverse);
 
     const ctx_out = getContext('out_img');
@@ -727,16 +730,25 @@ function shuffle2(data, generator, reverse) {
     doFor(singleStepLength, reverse, (pos) => shuffleNext(data, generator, pos));
 }
 
-function doFor(iterations, reverse, fun) {
+async function doFor(iterations, reverse, fun) {
     if (reverse) {
         for (let i = iterations - 1; i >= 0; i--) {
-            fun(i);
+            if (arrPool.available() > 2) {
+                fun(i);
+            } else {
+                await asyncTimeOut(100);
+            }
         }
     } else {
         for (let i = 0; i < iterations; i++) {
-            fun(i);
+            if (arrPool.available() > 2) {
+                fun(i);
+            } else {
+                await asyncTimeOut(20, ()=>{fun(i)});
+            }
         }
     }
+
 }
 
 function shuffleNext(data, generator, pos) {
@@ -765,7 +777,7 @@ function extractPoints(canvas) {
     return points;
 }
 
-function tiltedScattering(data, reverse) {
+async function tiltedScattering(data, reverse) {
     const slope = slopeFromDegrees(getAngle());
 
     const canvas = new Canvas(slope, image.width, image.height);
@@ -786,7 +798,11 @@ function tiltedScattering(data, reverse) {
     //for (let i = 0; i < points.length; i++) {
 
     //}
-    doFor(points.length, reverse, (i) => {scatterPoint(data, points, generator, distance, i)});
+    await doFor(points.length, reverse, (i) => {scatterPoint(data, points, generator, distance, i)});
+    if (!DEBUG) {
+        const ctx_out = getContext('out_img');
+        ctx_out.putImageData(imageD, 0, 0);
+    }
 }
 
 function scatterPoint(data, points, generator, distance, i) {
@@ -810,7 +826,11 @@ function scatterPoint(data, points, generator, distance, i) {
     }
     const newPoint = points[newPosition];
 
-    switchPositions(data, pointToSwitchPosition, newPoint);
+    if (DEBUG) {
+        debugSwitchPositions(data, pointToSwitchPosition, newPoint);
+    } else {
+        switchPositions(data, pointToSwitchPosition, newPoint);
+    }
 }
 
 function switchPositions(data, i, j) {
@@ -832,4 +852,106 @@ function switchPositions(data, i, j) {
     data[jShift] = r;
     data[jShift+1] = g;
     data[jShift+2] = b;
+}
+
+async function debugSwitchPositions(data, i, j) {
+    const iShift = i * 4;
+    const jShift = j * 4;
+
+    const rr = data[jShift];
+    const gr = data[jShift+1];
+    const br = data[jShift+2];
+
+    const r = data[iShift];
+    const g = data[iShift+1];
+    const b = data[iShift+2];
+
+    data[iShift] = rr;
+    data[iShift+1] = gr;
+    data[iShift+2] = br;
+
+    data[jShift] = r;
+    data[jShift+1] = g;
+    data[jShift+2] = b;
+
+    const arr1 = await arrPool.pop();
+    arr1[0] = rr;
+    arr1[1] = gr;
+    arr1[2] = br;
+    updateCanvas(i, arr1);
+    const arr2 = await arrPool.pop();
+    arr2[0] = r;
+    arr2[1] = g;
+    arr2[2] = b;
+    updateCanvas(j, arr2);
+}
+
+async function asyncTimeOut(time, fun) {
+    return new Promise((res, rej) => {
+        setTimeout(res, time);
+        fun();
+    });
+}
+
+function ArrPool(n) {
+    let length = n + 1;
+    let firstUsed = 0;
+    let lastUnused = 1;
+
+    const pool = new Array(length);
+
+    for (let i = 1; i < length; i++) {
+        const array = new Uint8ClampedArray(4);
+        array[3] = 255;
+        pool[i] = array;
+    }
+
+    this.available = () => {
+        if (lastUnused > firstUsed) {
+            return (length - lastUnused) + (firstUsed);
+        } else {
+            return firstUsed - lastUnused;
+        }
+    };
+
+    this.pop = async () => {
+        do {
+            if (this.available() === 0) {
+                console.warn('Depletion');
+                await asyncTimeOut(100);
+            } else {
+                break;
+            }
+        } while (lastUnused !== firstUsed);
+
+        const last = lastUnused;
+        if (++lastUnused === length) {
+            lastUnused = 0;
+        }
+
+        return pool[last];
+    };
+
+    this.offer = (obj) => {
+        pool[firstUsed] = obj;
+        if (firstUsed === length - 1) {
+            firstUsed = 0;
+        } else {
+            firstUsed ++;
+        }
+    };
+
+}
+
+const arrPool = new ArrPool(1000);
+
+function updateCanvas(lPos, data) {
+    const point = Point.calcPointOf(lPos, image.width);
+
+    const pxImage = new ImageData(data, 1, 1);
+
+    const ctx_out = getContext('out_img');
+    ctx_out.putImageData(pxImage, point.x, point.y);
+
+    arrPool.offer(data);
 }
