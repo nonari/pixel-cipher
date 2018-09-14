@@ -73,6 +73,10 @@ function getContext(anchor) {
     return ctxByAnchor.get(anchor);
 }
 
+function resetContext() {
+    ctxByAnchor.clear();
+}
+
 function processImg(reverse) {
     const ctx_in = getContext('in_img');
     const data = ctx_in.getImageData(0, 0, image.width, image.height);
@@ -183,11 +187,12 @@ function copyImage() {
 }
 
 function clearImage() {
+    disableOperationButtons();
     const ctx_in = getContext('in_img');
     const ctx_out = getContext('out_img');
     ctx_in.putImageData(voidImage, 0, 0);
     ctx_out.putImageData(voidImage, 0, 0);
-    disableOperationButtons();
+    resetContext();
 }
 
 
