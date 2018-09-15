@@ -2,24 +2,27 @@ from PIL import Image
 
 im = Image.open('image.jpg')
 px = im.load()
+w, h = im.size
 
 y0 = 1
 x0 = 1.0000001
 vals = []
-for i in range(0, 40000):
+for i in range(0, h * w):
     x = 1 - 1.4 * pow(x0, 2) + y0
     y = 0.3 * x0
-    xr = int(str(x)[4:9]) % 200
-    yr = int(str(y)[4:9]) % 200
+    xr = int(('%.11f' % (x))[4:9]) % w
+    yr = int(('%.11f' % (y))[4:9]) % h
     vals.append((xr, yr))
-    x0 = x
-    y0 = y
+    x0 = float('%.14f' % (x))
+    y0 = float('%.14f' % (y))
 
-for i in range(39999, -1, -1):
+vals.reverse()
+for i in range(0, h * w):
     (xr, yr) = vals[i]
-    p = px[i % 200, int(i / 200)]
+    j = h * w - i - 1
+    p = px[j % w, int(j / w)]
     pr = px[xr, yr]
-    px[i % 200, int(i / 200)] = pr
+    px[j % w, int(j / w)] = pr
     px[xr, yr] = p
 
 im.save('encrypted.png')
