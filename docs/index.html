@@ -1,0 +1,62 @@
+<!doctype html>
+<html class="no-js" lang="es">
+    <head>
+        <meta charset="utf-8">
+        <title>Pixel cipher</title>
+        <meta name="description" content="">
+
+        <link rel="stylesheet" href="css/main.css">
+        <link rel="stylesheet" href="css/normalize.css">
+    </head>
+    <body>
+
+        <div id="cont_clr">
+            <input id="in_file" type="file">
+        </div>
+        <div id="cnt_btns">
+            <button disabled id="btn_dec" class="operation_btn" onclick="processImg(false)">DECRYPT</button>
+            <button disabled id="btn_enc" class="operation_btn" onclick="processImg(true)">ENCRYPT</button>
+            <button disabled id="btn_cpy" class="operation_btn" onclick="copyImage()">SWITCH</button>
+            <button disabled id="btn_clr" class="operation_btn" onclick="clearImage()">CLEAR</button>
+        </div>
+        <div id="cnt_im">
+            <div id="cnt_im_pre"><canvas id="in_img"></canvas></div>
+            <div id="cnt_btn_tra">
+                <div id="scattering_type">
+                    <p>Encryption mode:</p>
+                    <div>
+                        <button id="even_btn" disabled onclick="scatteringMode(1)">Even</button>
+                        <button id="tilted_btn" onclick="scatteringMode(2)">Tilted</button>
+                    </div>
+                </div>
+                <div>
+                    <div id="angle_div">
+                        <label for="angle_input">Angle:</label>
+                        <input type="number" value="45" id="angle_input"/>
+                    </div>
+                    <div id="range_div">
+                        <label for="range_input">Range:</label>
+                        <input type="number" value="200" id="range_input"/>
+                    </div>
+                    <div id="key_values">
+                        <div>
+                            <label for="a_input">A:</label>
+                            <input value="1" id="a_input"/>
+                        </div>
+                        <div>
+                            <label for="b_input">B:</label>
+                            <input value="1.0001" id="b_input"/>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <button id="debug_btn">DEBUG</button>
+                </div>
+            </div>
+            <div id="cnt_im_post">
+                <canvas id="out_img"></canvas>
+            </div>
+        </div>
+        <script src="js/main.js"></script>
+    </body>
+</html>
